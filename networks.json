@@ -1,0 +1,124 @@
+[
+  { "name": "acala", "type": "substrate" },
+
+  { "name": "aleph-zero", "type": "substrate" },
+  { "name": "aleph-zero-testnet", "type": "substrate" },
+
+  { "name": "amplitude", "type": "substrate" },
+
+  { "name": "arbitrum-one", "type": "evm" },
+  { "name": "arbitrum-goerli", "type": "evm" },
+  { "name": "arbitrum-sepolia", "type": "evm" },
+
+  { "name": "arbitrum-nova", "type": "evm" },
+
+  { "name": "asset-hub-kusama", "type": "substrate" },
+  { "name": "asset-hub-polkadot", "type": "substrate" },
+  { "name": "asset-hub-rococo", "type": "substrate" },
+  { "name": "asset-hub-westend", "type": "substrate" },
+
+  { "name": "astar", "type": "evm" },
+  { "name": "astar", "type": "substrate" },
+
+  { "name": "ava", "type": "evm" },
+  { "name": "ava-testnet", "type": "evm" },
+
+  { "name": "base", "type": "evm" },
+  { "name": "base-goerli", "type": "evm" },
+  { "name": "base-sepolia", "type": "evm" },
+
+  { "name": "basilisk", "type": "substrate" },
+
+  { "name": "bridge-hub-kusama", "type": "substrate" },
+  { "name": "bridge-hub-polkadot", "type": "substrate" },
+  { "name": "bridge-hub-rococo", "type": "substrate" },
+  { "name": "bridge-hub-westend", "type": "substrate" },
+
+  { "name": "bsc", "type": "evm" },
+  { "name": "bsc-testnet", "type": "evm" },
+
+  { "name": "centrifuge", "type": "substrate" },
+
+  { "name": "collectives-polkadot", "type": "substrate" },
+  { "name": "collectives-westend", "type": "substrate" },
+
+  { "name": "crust", "type": "substrate" },
+
+  { "name": "darwinia", "type": "substrate" },
+  { "name": "darwiniacrab", "type": "substrate" },
+
+  { "name": "eden", "type": "substrate" },
+
+  { "name": "eth", "type": "evm" },
+  { "name": "eth-goerli", "type": "evm" },
+  { "name": "eth-holesky", "type": "evm" },
+  { "name": "eth-sepolia", "type": "evm" },
+
+  { "name": "evmos", "type": "evm" },
+
+  { "name": "fantom", "type": "evm" },
+  { "name": "fantom-testnet", "type": "evm" },
+
+  { "name": "frequency", "type": "substrate" },
+
+  { "name": "gnosis", "type": "evm" },
+
+  { "name": "hydradx", "type": "substrate" },
+
+  { "name": "interlay", "type": "substrate" },
+
+  { "name": "karura", "type": "substrate" },
+
+  { "name": "khala", "type": "substrate" },
+
+  { "name": "kilt", "type": "substrate" },
+
+  { "name": "kintsugi", "type": "substrate" },
+
+  { "name": "kusama", "type": "substrate" },
+
+  { "name": "litentry", "type": "substrate" },
+
+  { "name": "mantle", "type": "evm" },
+
+  { "name": "metis", "type": "evm" },
+
+  { "name": "moonbase-alpha", "type": "evm" },
+  { "name": "moonbase", "type": "substrate" },
+
+  { "name": "moonbeam", "type": "evm" },
+  { "name": "moonbeam", "type": "substrate" },
+
+  { "name": "moonriver", "type": "evm" },
+  { "name": "moonriver", "type": "substrate" },
+
+  { "name": "oktc", "type": "evm" },
+
+  { "name": "optimism", "type": "evm" },
+  { "name": "optimism-goerli", "type": "evm" },
+
+  { "name": "pendulum", "type": "substrate" },
+
+  { "name": "phala", "type": "substrate" },
+
+  { "name": "polkadex", "type": "substrate" },
+
+  { "name": "polkadot", "type": "substrate" },
+
+  { "name": "polygon", "type": "evm" },
+  { "name": "polygon-testnet", "type": "evm" },
+  { "name": "polygon-zkevm", "type": "evm" },
+  { "name": "polygon-zkevm-testnet", "type": "evm" },
+
+  { "name": "rococo", "type": "substrate" },
+
+  { "name": "shibuya", "type": "evm" },
+  { "name": "shibuya", "type": "substrate" },
+
+  { "name": "shiden", "type": "evm" },
+  { "name": "shiden", "type": "substrate" },
+
+  { "name": "turing", "type": "substrate" },
+
+  { "name": "zeitgeist", "type": "substrate" }
+]
