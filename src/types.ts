@@ -4,10 +4,6 @@ export type ManifestProcessor = {
   env?: Record<string, string>;
 };
 
-export type ManifestOptions = {
-  validation?: { allowUnknown?: boolean };
-};
-
 export type ManifestDeploymentConfig = {
   /**
    * @deprecated
@@ -35,7 +31,39 @@ export type ManifestDeploymentConfig = {
     cmd?: string[];
     env?: Record<string, string>;
   };
-  processor?: ManifestProcessor[];
+  processor: ManifestProcessor | ManifestProcessor[];
+
+  /** @deprecated */
+  migrate?: ManifestDeploymentConfig['init'];
+};
+
+export type ManifestScaleConfig = {
+  dedicated?: boolean;
+  addons?: {
+    postgres?: {
+      storage: string;
+      profile: 'small' | 'medium' | 'large';
+      default_storage?: boolean;
+    };
+  };
+  api?: {
+    replicas?: number;
+    profile: 'small' | 'medium' | 'large';
+  };
+  processor?: {
+    profile: 'small' | 'medium' | 'large';
+  };
+};
+
+export type ManifestBuildConfig = {
+  dockerfile: string;
+  // target: string;
+  node_version: '16' | '18' | '20' | '21';
+  package_manager: 'auto' | PackageManager;
+  install?: {
+    cmd: string[];
+  };
+  cmd?: string[];
 };
 
 export type PackageManager = 'npm' | 'pnpm' | 'yarn';
@@ -52,32 +80,7 @@ export type ManifestValue = {
   description?: string;
   queries?: Record<string, string>;
 
-  build: {
-    dockerfile: string;
-    // target: string;
-    node_version: '16' | '18' | '20' | '21';
-    package_manager: 'auto' | PackageManager;
-    install?: {
-      cmd: string[];
-    };
-    cmd?: string[];
-  };
+  build?: ManifestBuildConfig;
   deploy?: ManifestDeploymentConfig;
-  scale?: {
-    dedicated: boolean;
-    addons?: {
-      postgres?: {
-        storage: string;
-        profile: 'small' | 'medium' | 'large';
-        default_storage?: boolean;
-      };
-    };
-    api?: {
-      replicas?: number;
-      profile: 'small' | 'medium' | 'large';
-    };
-    processor?: {
-      profile: 'small' | 'medium' | 'large';
-    };
-  };
+  scale?: ManifestScaleConfig;
 };

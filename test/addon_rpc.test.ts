@@ -2,7 +2,7 @@ import { Manifest } from '../src';
 
 describe('Addon RPC', () => {
   it('should add defaults to postgres addon', () => {
-    const m = Manifest.parse(`
+    const { error, value } = Manifest.parse(`
     manifest_version: subsquid.io/v0.1
     name: test
     version: 1
@@ -16,8 +16,8 @@ describe('Addon RPC', () => {
         cmd: [ "node", "lib/processor" ]
     `);
 
-    expect(m.hasError()).toEqual(false);
-    expect(m.values()).toEqual({
+    expect(error).toBeUndefined();
+    expect(value).toEqual({
       manifest_version: 'subsquid.io/v0.1',
       name: 'test',
       version: 1,
@@ -66,7 +66,7 @@ describe('Addon RPC', () => {
   });
 
   it('should add not add default true to postgres addon if storage specified', () => {
-    const m = Manifest.parse(`
+    const { error, value } = Manifest.parse(`
     manifest_version: subsquid.io/v0.1
     name: test
     version: 1
@@ -84,8 +84,8 @@ describe('Addon RPC', () => {
            storage: 50Gi
     `);
 
-    expect(m.hasError()).toEqual(false);
-    expect(m.values()).toEqual({
+    expect(error).toBeUndefined();
+    expect(value).toEqual({
       manifest_version: 'subsquid.io/v0.1',
       name: 'test',
       version: 1,
@@ -135,7 +135,7 @@ describe('Addon RPC', () => {
   });
 
   it('should not add migrate service if not specified postgres addon', () => {
-    const m = Manifest.parse(`
+    const { error, value } = Manifest.parse(`
     manifest_version: subsquid.io/v0.1
     name: test
     version: 1
@@ -148,8 +148,8 @@ describe('Addon RPC', () => {
         cmd: [ "node", "lib/processor" ]
     `);
 
-    expect(m.hasError()).toEqual(false);
-    expect(m.values()).toEqual({
+    expect(error).toBeUndefined();
+    expect(value).toEqual({
       manifest_version: 'subsquid.io/v0.1',
       name: 'test',
       version: 1,
@@ -182,7 +182,7 @@ describe('Addon RPC', () => {
   });
 
   it('should not override disabled migration', () => {
-    const m = Manifest.parse(`
+    const { error, value } = Manifest.parse(`
     manifest_version: subsquid.io/v0.1
     name: test
     version: 1
@@ -195,8 +195,8 @@ describe('Addon RPC', () => {
         cmd: [ "node", "lib/processor" ]
     `);
 
-    expect(m.hasError()).toEqual(false);
-    expect(m.values()).toEqual({
+    expect(error).toBeUndefined();
+    expect(value).toEqual({
       manifest_version: 'subsquid.io/v0.1',
       name: 'test',
       version: 1,
@@ -230,7 +230,7 @@ describe('Addon RPC', () => {
   });
 
   it('should transform migrate to init', () => {
-    const m = Manifest.parse(`
+    const { error, value } = Manifest.parse(`
       manifest_version: subsquid.io/v0.1
       name: test
       version: 1
@@ -238,9 +238,12 @@ describe('Addon RPC', () => {
       deploy:
         migrate:
           cmd: [ "npx", "squid-typeorm-migration", "apply" ]
+        processor:
+          cmd: [ "node", "lib/processor" ]
     `);
 
-    expect(m.values()).toEqual({
+    expect(error).toBeUndefined();
+    expect(value).toEqual({
       manifest_version: 'subsquid.io/v0.1',
       name: 'test',
       version: 1,
@@ -252,6 +255,17 @@ describe('Addon RPC', () => {
       deploy: {
         init: {
           cmd: ['npx', 'squid-typeorm-migration', 'apply'],
+        },
+        processor: [
+          {
+            name: 'processor',
+            cmd: ['node', 'lib/processor'],
+          },
+        ],
+      },
+      scale: {
+        processor: {
+          profile: 'small',
         },
       },
     });

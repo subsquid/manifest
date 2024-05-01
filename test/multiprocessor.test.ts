@@ -1,8 +1,8 @@
-import { Manifest } from '../src';
+import { Manifest, ManifestParsingError } from '../src';
 
 describe('Multiprocessor', () => {
   it('should check processor name uniqueness', () => {
-    const m = Manifest.parse(`
+    const { error } = Manifest.parse(`
     manifest_version: subsquid.io/v0.1
     name: 1qwerty12
     version: 1
@@ -17,10 +17,10 @@ describe('Multiprocessor', () => {
         cmd: [ "node", "lib/processor" ]
     `);
 
-    expect(m.hasError()).toEqual(true);
-    expect(m.getErrors()).toEqual([
-      'Validation error occurred:',
-      `1) Processor names must be unique within a squid`,
-    ]);
+    expect(error).toEqual(
+      new ManifestParsingError('Validation error occurred', [
+        `Processor names must be unique within a squid`,
+      ]),
+    );
   });
 });

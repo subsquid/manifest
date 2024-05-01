@@ -105,14 +105,23 @@ export const manifestSchema = Joi.object<ManifestValue>({
       cmd: Joi.array().items(cmdSchema).min(1).required(),
     }).allow(false),
 
-    processor: Joi.array()
-      .items(processorSchema(true))
-      .unique((a, b) => a.name === b.name)
-      .messages({
-        'array.unique': 'Processor names must be unique within a squid',
-      })
-      .min(1)
-      .required(),
+    migrate: Joi.object({
+      env: envSchema,
+      cmd: Joi.array().items(cmdSchema).min(1).required(),
+    })
+      .description('[DEPRECATED] Please use "init" instead')
+      .allow(false),
+
+    processor: Joi.alternatives(
+      processorSchema(false),
+      Joi.array()
+        .items(processorSchema(true))
+        .unique((a, b) => a.name === b.name)
+        .messages({
+          'array.unique': 'Processor names must be unique within a squid',
+        })
+        .min(1),
+    ).required(),
 
     api: Joi.object({
       env: envSchema,

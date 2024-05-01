@@ -1,16 +1,20 @@
 import { Expression, Parser } from '@subsquid/manifest-expr';
 import yaml from 'js-yaml';
-import { cloneDeep, defaultsDeep, get, isPlainObject, mapValues, set } from 'lodash';
+import { cloneDeep, defaultsDeep, get, isNil, mapValues, omitBy, set } from 'lodash';
 
 import { manifestSchema } from './schema';
-import {
-  ManifestValue,
-  ManifestProcessor,
-  ManifestDeploymentConfig,
-  ManifestOptions,
-} from './types';
+import { ManifestValue, ManifestProcessor, ManifestDeploymentConfig } from './types';
 
-export interface Manifest extends ManifestValue {}
+export type ManifestParsiongOptions = {
+  validation?: { allowUnknown?: boolean };
+};
+
+export interface Manifest extends ManifestValue {
+  manifestVersion?: never;
+  deploy?: Omit<ManifestDeploymentConfig, 'processor' | 'migrate'> & {
+    processor: ManifestProcessor[];
+  };
+}
 
 export class Manifest {
   constructor(value: ManifestValue) {
@@ -24,8 +28,8 @@ export class Manifest {
     // Duck typings and legacy manifests
     if (this.deploy?.processor === null) {
       this.deploy.processor = [];
-    } else if (this.deploy?.processor && isPlainObject(this.deploy?.processor)) {
-      const proc = this.deploy?.processor as unknown as ManifestProcessor;
+    } else if (this.deploy?.processor && !Array.isArray(this.deploy?.processor)) {
+      const proc = this.deploy?.processor as ManifestProcessor;
       if (!proc.name) {
         proc.name = 'processor';
       }
@@ -146,7 +150,7 @@ export class Manifest {
         try {
           return value.eval(context);
         } catch (e) {
-          throw new ManifestEvaluatingError('Unable to evaluate manifest', [
+          throw new ManifestEvaluatingError('Evaluation error occurred', [
             getError(`${path}.${key}`, get(this as ManifestValue, `${path}.${key}`), e),
           ]);
         }
@@ -201,14 +205,16 @@ export class Manifest {
     const errors: string[] = [];
 
     const _parse = (env: Record<string, string> | undefined, path: string) => {
-      return mapValues(env, (value, key) => {
-        try {
-          return parser.parse(value);
-        } catch (e: unknown) {
-          errors.push(getError(`${path}.${key}`, value, e));
-          return new Expression(['']);
-        }
-      });
+      return env
+        ? mapValues(env, (value, key) => {
+            try {
+              return parser.parse(value);
+            } catch (e: unknown) {
+              errors.push(getError(`${path}.${key}`, value, e));
+              return new Expression(['']);
+            }
+          })
+        : undefined;
     };
 
     const res = {
@@ -222,11 +228,11 @@ export class Manifest {
     };
 
     return errors.length > 0
-      ? { error: new ManifestEvaluatingError(`Unable to parse manifest`, errors) }
+      ? { error: new ManifestEvaluatingError(`Evaluation error occurred`, errors) }
       : { value: res };
   }
 
-  static validate(value: Partial<ManifestValue>, options: ManifestOptions = {}) {
+  static validate(value: Partial<ManifestValue>, options: ManifestParsiongOptions = {}) {
     const res = manifestSchema.validate(value, {
       allowUnknown: options.validation?.allowUnknown,
       abortEarly: false,
@@ -235,42 +241,42 @@ export class Manifest {
 
     if (res.error) {
       return {
-        error: [
-          'Validation error occurred:',
-          ...res.error.details?.map((e, i) => {
-            return `  ${i + 1}) ${e.message}`;
-          }),
-        ].join('\n'),
+        error: new ManifestParsingError(
+          'Validation error occurred',
+          res.error.details?.map(e => e.message),
+        ),
       };
     } else {
       return {
-        value: res.value,
+        value: res.value as ManifestValue,
       };
     }
   }
 
-  static parse(str: string, options: ManifestOptions = {}) {
+  static parse(str: string, options: ManifestParsiongOptions = {}) {
     try {
-      const value = yaml.load(str || '{}') as object;
+      const raw = yaml.load(str || '{}') as Partial<ManifestValue>;
 
       ['build', 'deploy.api', 'deploy.addons.postgres'].map(path => {
-        if (get(value, path) === null) {
-          set(value, path, {});
+        if (get(raw, path) === null) {
+          set(raw, path, {});
         }
       });
 
-      const res = this.validate(value, options);
+      const { error, value } = this.validate(raw, options);
 
-      if (res.error) {
-        return res.error;
+      if (error) {
+        return { error };
       }
 
       return {
-        value: new Manifest(res.value!),
+        value: new Manifest(value),
       };
     } catch (e: unknown) {
       return {
-        error: e instanceof Error ? [e.message] : [String(e)],
+        error: new ManifestParsingError(`Parsing error occurred`, [
+          e instanceof Error ? e.message : String(e),
+        ]),
       };
     }
   }
@@ -292,10 +298,13 @@ function getError(path: string, expression: string | undefined, error: any) {
 }
 
 export class ManifestEvaluatingError extends Error {
-  constructor(
-    message: string,
-    readonly details: string[],
-  ) {
-    super(message);
+  constructor(message: string, details: string[] = []) {
+    super([message + ':', ...details.map((v, i) => `  ${i + 1}) ${v}`)].join('\n'));
+  }
+}
+
+export class ManifestParsingError extends Error {
+  constructor(message: string, details: string[] = []) {
+    super([message + ':', ...details.map((v, i) => `  ${i + 1}) ${v}`)].join('\n'));
   }
 }

@@ -2,7 +2,7 @@ import { Manifest } from '../src';
 
 describe('Outdated', () => {
   it('should accept old "manifestVersion" props and convert it to "manifest_version"', () => {
-    const m = Manifest.parse(`
+    const { error } = Manifest.parse(`
     manifestVersion: subsquid.io/v0.1
     name: test
     version: 1
@@ -15,11 +15,11 @@ describe('Outdated', () => {
         cmd: [ "node", "lib/processor" ]
     `);
 
-    expect(m.hasError()).toEqual(false);
+    expect(error).toBeUndefined();
   });
 
   it('should accept rpc with semicolons', () => {
-    const m = Manifest.parse(`
+    const { error } = Manifest.parse(`
     manifestVersion: subsquid.io/v0.1
     name: test
     version: 1
@@ -35,6 +35,6 @@ describe('Outdated', () => {
           - acala:http
     `);
 
-    expect(m.hasError()).toEqual(false);
+    expect(error).toBeUndefined();
   });
 });
