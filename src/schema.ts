@@ -1,5 +1,6 @@
 import { extendedJoi as Joi } from './joi';
 import { RPC_ENDPOINT_NAMES } from './rpc_networks';
+import { ManifestProcessor, ManifestValue } from './types';
 
 export const SECRET_NAME_PATTERN = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
 export const SQUID_NAME_PATTERN = /^[a-z0-9][a-z0-9\-]*[a-z0-9]$/;
@@ -49,14 +50,14 @@ export const processorSchema = (multi = true) => {
     nameSchema = nameSchema.required();
   }
 
-  return Joi.object({
+  return Joi.object<ManifestProcessor>({
     name: nameSchema,
     env: envSchema,
     cmd: Joi.array().items(cmdSchema).min(1).required(),
   });
 };
 
-export const manifestSchema = Joi.object({
+export const manifestSchema = Joi.object<ManifestValue>({
   manifest_version: Joi.string().valid(...AVAILABLE_MANIFEST_VERSIONS),
   name: JoiSquidName,
   version: JoiSquidVersionName,

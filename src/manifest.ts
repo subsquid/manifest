@@ -1,146 +1,52 @@
-import { ValidationError } from 'joi';
 import yaml from 'js-yaml';
-import { defaultsDeep, get, isPlainObject, set } from 'lodash';
+import { defaultsDeep, get, isPlainObject, mapValues, set } from 'lodash';
 
 import { manifestSchema } from './schema';
+import {
+  ManifestValue,
+  ManifestProcessor,
+  ManifestDeploymentConfig,
+  ManifestOptions,
+} from './types';
 
-export type ManifestProcessor = {
-  name: string;
-  cmd?: string[];
-  env?: Record<string, string>;
-};
-
-export type ManifestOptions = {
-  validation?: { allowUnknown?: boolean };
-};
-
-export type ManifestDeploymentConfig = {
-  /**
-   * @deprecated
-   */
-  secrets?: string[];
-
-  env?: Record<string, string>;
-  addons?: {
-    postgres?: {
-      version: string;
-      config?: {
-        statement_timeout: number;
-        log_min_duration_statement: number;
-        max_locks_per_transaction: number;
-        max_pred_locks_per_transaction: number;
-      };
-    };
-    rpc?: string[];
-  };
-  api?: {
-    cmd?: string[];
-    env?: Record<string, string>;
-  };
-  init?: {
-    cmd?: string[];
-    env?: Record<string, string>;
-  };
-  processor?: ManifestProcessor[];
-};
-
-export type PackageManager = 'npm' | 'pnpm' | 'yarn';
-
-export type ManifestValue = {
-  /**
-   * @deprecated
-   */
-  manifestVersion: string;
-
-  manifest_version: string;
-  name: string;
-  version: number;
-  description: string;
-  queries: Record<string, string>;
-
-  build: {
-    dockerfile: string;
-    // target: string;
-    node_version: '16' | '18' | '20' | '21';
-    package_manager: 'auto' | PackageManager;
-    install?: {
-      cmd: string[];
-    };
-    cmd?: string[];
-  };
-  deploy: ManifestDeploymentConfig;
-  scale: {
-    dedicated: boolean;
-    addons?: {
-      postgres?: {
-        storage: string;
-        profile: 'small' | 'medium' | 'large';
-        default_storage?: boolean;
-      };
-    };
-    api?: {
-      replicas?: number;
-      profile: 'small' | 'medium' | 'large';
-    };
-    processor?: {
-      profile: 'small' | 'medium' | 'large';
-    };
-  };
-};
+export interface Manifest extends ManifestValue {}
 
 export class Manifest {
-  protected error: string[];
+  constructor(value: Partial<ManifestValue> = {}) {
+    defaultsDeep(this, value);
 
-  constructor(
-    protected value: Partial<ManifestValue> = {},
-    protected options: ManifestOptions = {},
-  ) {
-    if (value?.manifestVersion) {
+    if (this.manifestVersion) {
       value.manifest_version = value.manifestVersion;
       delete value.manifestVersion;
     }
 
     // Duck typings and legacy manifests
-    if (value?.deploy?.processor === null) {
-      value.deploy.processor = [];
-    } else if (value?.deploy?.processor && isPlainObject(value?.deploy?.processor)) {
+    if (this.deploy?.processor === null) {
+      this.deploy.processor = [];
+    } else if (this.deploy?.processor && isPlainObject(this.deploy?.processor)) {
       const proc = value?.deploy?.processor as unknown as ManifestProcessor;
       if (!proc.name) {
         proc.name = 'processor';
       }
 
-      value.deploy.processor = [proc];
+      this.deploy.processor = [proc];
     }
 
-    if (value?.deploy && !value?.deploy?.init && 'migrate' in value.deploy) {
-      value.deploy.init = value.deploy.migrate as ManifestDeploymentConfig['init'];
-      delete value.deploy.migrate;
+    if (this.deploy && !this.deploy?.init && 'migrate' in this.deploy) {
+      this.deploy.init = this.deploy.migrate as ManifestDeploymentConfig['init'];
+      delete this.deploy.migrate;
     }
 
-    this.value = value ?? {};
-
-    this.validate();
-  }
-
-  validate() {
-    const { error, value } = manifestSchema.validate(this.value, {
-      allowUnknown: this.options.validation?.allowUnknown,
-      abortEarly: false,
-      convert: true,
-    });
-
-    this.value = value;
-
-    if (this.value?.scale) {
-      this.value = defaultsDeep(this.value, {
+    if (this.scale) {
+      value = defaultsDeep(value, {
         scale: {
           dedicated: false,
         },
       });
     }
 
-    if (this.value?.deploy?.api) {
-      this.value = defaultsDeep(this.value, {
+    if (this.deploy?.api) {
+      defaultsDeep(this, {
         scale: {
           api: {
             replicas: 1,
@@ -149,8 +55,8 @@ export class Manifest {
         },
       });
     }
-    if (this.value?.deploy?.processor) {
-      this.value = defaultsDeep(this.value, {
+    if (this.deploy?.processor) {
+      defaultsDeep(this, {
         scale: {
           processor: {
             profile: 'small',
@@ -158,8 +64,8 @@ export class Manifest {
         },
       });
     }
-    if (this.value?.deploy?.addons?.postgres) {
-      this.value = defaultsDeep(this.value, {
+    if (this.deploy?.addons?.postgres) {
+      defaultsDeep(this, {
         deploy: {
           addons: {
             postgres: {
@@ -175,12 +81,13 @@ export class Manifest {
             postgres: {
               storage: '10Gi',
               profile: 'small',
-              default_storage: !this.value?.scale?.addons?.postgres?.storage,
+              default_storage: !this.scale?.addons?.postgres?.storage,
             },
           },
         },
       });
     }
+
     // if (this.value?.deploy?.addons?.redis) {
     //   this.value = defaultsDeep(this.value, {
     //     scale: {
@@ -192,59 +99,61 @@ export class Manifest {
     //     },
     //   });
     // }
-
-    this.setError(error);
-
-    return error;
-  }
-
-  setError(error: ValidationError | Error | any) {
-    if (!error) return;
-
-    if ('details' in error) {
-      this.error = [
-        'Validation error occurred:',
-        ...(error as ValidationError).details?.map((e, i) => {
-          return `${i + 1}) ${e.message}`;
-        }),
-      ];
-      return;
-    }
-
-    if (error instanceof Error) {
-      this.error = ['Validation error occurred:', '1) ' + error.message];
-      return;
-    }
-
-    this.error = ['Validation error occurred:', error.toString()];
-  }
-
-  getErrors(): string[] {
-    return this.error || [];
-  }
-
-  hasError() {
-    return Boolean(this.error);
   }
 
   squidName() {
-    return this.value?.name?.toString();
+    return this.name;
   }
 
   versionName() {
-    return this.value?.version ? `v${this.value?.version}` : undefined;
+    return `v${this.version}`;
   }
 
-  values(): Partial<ManifestValue> {
-    return this.value;
+  values(): ManifestValue {
+    return defaultsDeep(
+      {},
+      {
+        manifest_version: this.manifest_version,
+        name: this.name,
+        description: this.description,
+        version: this.version,
+        build: this.build,
+        deploy: this.deploy,
+        scale: this.scale,
+        queries: this.queries,
+      },
+    );
   }
 
   toString(pretty = false) {
-    return yaml.dump(this.value, { indent: pretty ? 2 : undefined });
+    return yaml.dump(this.values(), { indent: pretty ? 2 : undefined });
   }
 
   toYaml(): string {
-    return yaml.dump(this.value);
+    return yaml.dump(this.values());
+  }
+
+  static validate(value: Partial<ManifestValue>, options: ManifestOptions = {}) {
+    const res = manifestSchema.validate(value, {
+      allowUnknown: options.validation?.allowUnknown,
+      abortEarly: false,
+      convert: true,
+    });
+
+    if (res.error) {
+      return {
+        error: [
+          'Validation error occurred:',
+          ...res.error.details?.map((e, i) => {
+            return `  ${i + 1}) ${e.message}`;
+          }),
+        ].join('\n'),
+      };
+    } else {
+      return {
+        value: res.value,
+      };
+    }
   }
 
   static parse(str: string, options: ManifestOptions = {}) {
@@ -257,19 +166,34 @@ export class Manifest {
         }
       });
 
-      return new Manifest(value, options);
-    } catch (e) {
-      const m = new Manifest({});
-      m.setError(e as Error);
+      const res = this.validate(value, options);
 
-      return m;
+      if (res.error) {
+        return res.error;
+      }
+
+      return {
+        value: new Manifest(res.value),
+      };
+    } catch (e: unknown) {
+      return {
+        error: e instanceof Error ? [e.message] : [String(e)],
+      };
     }
   }
 
-  static isEmpty(manifest: Manifest) {
+  static isEmpty(manifest: Partial<ManifestValue> | null | undefined) {
     if (!manifest) return true;
-    else if (Object.keys(manifest.values()).length === 0) return true;
 
-    return false;
+    return Object.keys(manifest).length === 0;
   }
+}
+
+function getError(path: string, expression: string | undefined, error: any) {
+  const exprIn = expression ? ` for "${expression}" expression` : '';
+
+  return [
+    `Manifest env variable "${path}" can not be mapped${exprIn}`,
+    error instanceof Error ? error.message : error.toString(),
+  ].join(': ');
 }

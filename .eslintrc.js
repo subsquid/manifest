@@ -29,6 +29,7 @@ module.exports = {
         '@typescript-eslint/no-explicit-any': 'off',
         "@typescript-eslint/no-floating-promises": "error",
         '@typescript-eslint/no-unused-vars': 'off',
+        '@typescript-eslint/no-unsafe-declaration-merging': 'off',
         'import/order': [
             'error',
             {

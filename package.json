@@ -21,6 +21,7 @@
     "networks.json"
   ],
   "dependencies": {
+    "@subsquid/manifest-expr": "^0.0.1",
     "joi": "^17.12.0",
     "js-yaml": "^4.1.0",
     "lodash": "^4.17.21"
