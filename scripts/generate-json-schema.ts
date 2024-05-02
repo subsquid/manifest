@@ -28,11 +28,7 @@ import { manifestSchema, processorSchema } from '../src';
 
 const OUT_PATH = './schemas/squid_manifest.json';
 
-const fixedSchema = manifestSchema.keys({
-  deploy: (manifestSchema.extract('deploy') as ObjectSchema).keys({
-    processor: Joi.alternatives(processorSchema(false), manifestSchema.extract('deploy.processor')),
-  }),
-});
+const fixedSchema = manifestSchema;
 
 const jsonSchema = parse(fixedSchema, 'json');
 
