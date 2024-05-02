@@ -1,9 +1,10 @@
 import { Expression, Parser } from '@subsquid/manifest-expr';
 import yaml from 'js-yaml';
-import { cloneDeep, defaultsDeep, get, isNil, mapValues, omitBy, set } from 'lodash';
+import { cloneDeep, defaultsDeep, get, mapValues, set } from 'lodash';
 
+import { ManifestEvaluatingError, ManifestParsingError } from './errors';
 import { manifestSchema } from './schema';
-import { ManifestValue, ManifestProcessor, ManifestDeploymentConfig } from './types';
+import { ManifestDeploymentConfig, ManifestProcessor, ManifestValue } from './types';
 
 export type ManifestParsingOptions = {
   validation?: { allowUnknown?: boolean };
@@ -150,7 +151,7 @@ export class Manifest {
         try {
           return value.eval(context);
         } catch (e) {
-          throw new ManifestEvaluatingError('Evaluation error occurred', [
+          throw new ManifestEvaluatingError([
             getError(`${path}.${key}`, get(this as ManifestValue, `${path}.${key}`), e),
           ]);
         }
@@ -227,9 +228,7 @@ export class Manifest {
         })) || [],
     };
 
-    return errors.length > 0
-      ? { error: new ManifestEvaluatingError(`Evaluation error occurred`, errors) }
-      : { value: res };
+    return errors.length > 0 ? { error: new ManifestEvaluatingError(errors) } : { value: res };
   }
 
   static validate(value: Partial<ManifestValue>, options: ManifestParsingOptions = {}) {
@@ -241,10 +240,7 @@ export class Manifest {
 
     if (res.error) {
       return {
-        error: new ManifestParsingError(
-          'Validation error occurred',
-          res.error.details?.map(e => e.message),
-        ),
+        error: new ManifestParsingError(res.error.details?.map(e => e.message)),
       };
     } else {
       return {
@@ -274,9 +270,7 @@ export class Manifest {
       };
     } catch (e: unknown) {
       return {
-        error: new ManifestParsingError(`Parsing error occurred`, [
-          e instanceof Error ? e.message : String(e),
-        ]),
+        error: new ManifestParsingError([e instanceof Error ? e.message : String(e)]),
       };
     }
   }
@@ -295,16 +289,4 @@ function getError(path: string, expression: string | undefined, error: any) {
     `Manifest env variable "${path}" can not be mapped${exprIn}`,
     error instanceof Error ? error.message : error.toString(),
   ].join(': ');
-}
-
-export class ManifestEvaluatingError extends Error {
-  constructor(message: string, details: string[] = []) {
-    super([message + ':', ...details.map((v, i) => `  ${i + 1}) ${v}`)].join('\n'));
-  }
-}
-
-export class ManifestParsingError extends Error {
-  constructor(message: string, details: string[] = []) {
-    super([message + ':', ...details.map((v, i) => `  ${i + 1}) ${v}`)].join('\n'));
-  }
 }

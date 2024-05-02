@@ -13,10 +13,7 @@ describe('Squid name', () => {
     `);
 
     expect(error).toEqual(
-      new ManifestParsingError('Validation error occurred', [
-        'The squid name is required',
-        'The squid version is required',
-      ]),
+      new ManifestParsingError(['The squid name is required', 'The squid version is required']),
     );
   });
 
@@ -50,7 +47,7 @@ describe('Squid name', () => {
     `);
 
     expect(error).toEqual(
-      new ManifestParsingError('Validation error occurred', [
+      new ManifestParsingError([
         'The squid name "1.2364656565656557e+34" is invalid. Only lowercase latin letters, numbers and the dash symbol are allowed for the squid name. The squid name cannot start with a dash',
         'The squid version "1.2364656565656557e+34" is invalid. Must be a number from 1 to 1000000',
       ]),
@@ -71,7 +68,7 @@ describe('Squid name', () => {
     `);
 
     expect(error).toEqual(
-      new ManifestParsingError('Validation error occurred', [
+      new ManifestParsingError([
         `The squid name "-testsquid" is invalid. Only lowercase latin letters, numbers and the dash symbol are allowed for the squid name. The squid name cannot start with a dash`,
       ]),
     );
@@ -108,7 +105,7 @@ describe('Squid name', () => {
     `);
 
     expect(error).toEqual(
-      new ManifestParsingError('Validation error occurred', [
+      new ManifestParsingError([
         `The squid name "my/test" is invalid. Only lowercase latin letters, numbers and the dash symbol are allowed for the squid name. The squid name cannot start with a dash`,
         '"version" must be a number',
       ]),
@@ -129,7 +126,7 @@ describe('Squid name', () => {
     `);
 
     expect(error).toEqual(
-      new ManifestParsingError('Validation error occurred', [
+      new ManifestParsingError([
         `The squid name "MYSQUID-TEST" is invalid. Only lowercase latin letters, numbers and the dash symbol are allowed for the squid name. The squid name cannot start with a dash`,
       ]),
     );

@@ -22,7 +22,7 @@ describe('Env', () => {
       `);
 
     expect(error).toEqual(
-      new ManifestParsingError('Validation error occurred', [
+      new ManifestParsingError([
         '"deploy.processor.env.ARRAY" must be a string',
         '"deploy.processor.env.OBJECT" must be a string',
         '"deploy.api.env.ARRAY" must be a string',
@@ -53,7 +53,7 @@ describe('Env', () => {
       `);
 
     expect(error).toEqual(
-      new ManifestParsingError('Validation error occurred', [
+      new ManifestParsingError([
         '"deploy.processor.env.-invalid" is not allowed',
         '"deploy.api.env.0invalid" is not allowed',
       ]),

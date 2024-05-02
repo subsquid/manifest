@@ -59,7 +59,7 @@ describe('Env Evaluation', () => {
           baz: 'baz',
         }),
       ).toThrow(
-        new ManifestEvaluatingError('Evaluation error occurred', [
+        new ManifestEvaluatingError([
           'Manifest env variable "deploy.env.foo" can not be mapped for "${{foo.}}" expression: Unexpected EOF [0,7]',
         ]),
       );
@@ -87,7 +87,7 @@ describe('Env Evaluation', () => {
           foo: 'foo',
         }),
       ).toThrow(
-        new ManifestEvaluatingError('Evaluation error occurred', [
+        new ManifestEvaluatingError([
           'Manifest env variable "deploy.env.baz" can not be mapped for "${{baz}}" expression: "baz" is not found in the context',
         ]),
       );

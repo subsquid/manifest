@@ -12,9 +12,7 @@ describe('Services', () => {
         cmd: ["test"]
     `);
 
-    expect(error).toEqual(
-      new ManifestParsingError('Validation error occurred', ['"deploy.processor" is required']),
-    );
+    expect(error).toEqual(new ManifestParsingError(['"deploy.processor" is required']));
   });
 
   it('should add defaults to minimal manifest', () => {
@@ -76,7 +74,7 @@ describe('Services', () => {
     `);
 
     expect(error).toEqual(
-      new ManifestParsingError('Validation error occurred', [
+      new ManifestParsingError([
         '"deploy.processor.cmd" is required',
         '"deploy.api.cmd" is required',
       ]),
@@ -97,7 +95,7 @@ describe('Services', () => {
     `);
 
     expect(error).toEqual(
-      new ManifestParsingError('Validation error occurred', [
+      new ManifestParsingError([
         '"deploy.processor.cmd[0]" with value "ENV=test" is invalid. Only latin letters, numbers, ".", "-", "_", "/" and ":" symbols are allowed.',
         '"deploy.api.cmd[0]" with value "ENV=test" is invalid. Only latin letters, numbers, ".", "-", "_", "/" and ":" symbols are allowed.',
       ]),
@@ -134,7 +132,7 @@ describe('Services', () => {
     `);
 
     expect(error).toEqual(
-      new ManifestParsingError('Validation error occurred', [
+      new ManifestParsingError([
         '"deploy.api.cmd[2]" with value "&&" is invalid. Only latin letters, numbers, ".", "-", "_", "/" and ":" symbols are allowed.',
       ]),
     );

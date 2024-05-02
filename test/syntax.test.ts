@@ -15,7 +15,7 @@ describe('Syntax errors', () => {
     `);
 
     expect(error).toEqual(
-      new ManifestParsingError('Parsing error occurred', [
+      new ManifestParsingError([
         `bad indentation of a mapping entry (5:13)
 
  2 |       manifest_version: subsquid.io/v0.1
