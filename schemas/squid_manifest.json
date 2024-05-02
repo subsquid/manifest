@@ -62,7 +62,7 @@
                             "minItems": 1,
                             "items": {
                                 "type": "string",
-                                "pattern": "^([:\\-\\/\\w.]+|&&)$"
+                                "pattern": "^[:\\-\\/\\w.]+$"
                             }
                         }
                     },
@@ -76,11 +76,102 @@
                     "minItems": 1,
                     "items": {
                         "type": "string",
-                        "pattern": "^([:\\-\\/\\w.]+|&&)$"
+                        "pattern": "^[:\\-\\/\\w.]+$"
                     }
                 }
             },
             "additionalProperties": false
+        },
+        "scale": {
+            "type": "object",
+            "properties": {
+                "dedicated": {
+                    "type": "boolean"
+                },
+                "addons": {
+                    "type": "object",
+                    "properties": {
+                        "postgres": {
+                            "type": "object",
+                            "properties": {
+                                "storage": {
+                                    "type": "string"
+                                },
+                                "profile": {
+                                    "type": "string",
+                                    "enum": [
+                                        "small",
+                                        "medium",
+                                        "large"
+                                    ]
+                                }
+                            },
+                            "additionalProperties": false
+                        },
+                        "rpc": {
+                            "type": "object",
+                            "description": "[DEPRECATED] Please use billing settings in Cloud UI",
+                            "properties": {
+                                "monthly-cap": {
+                                    "type": "string",
+                                    "pattern": "\\d+[km]"
+                                },
+                                "max-rate": {
+                                    "type": "string",
+                                    "pattern": "\\d+rp[sm]"
+                                }
+                            },
+                            "additionalProperties": false
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "processor": {
+                    "type": "object",
+                    "default": {
+                        "profile": "small"
+                    },
+                    "properties": {
+                        "profile": {
+                            "type": "string",
+                            "enum": [
+                                "small",
+                                "medium",
+                                "large"
+                            ]
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "api": {
+                    "type": "object",
+                    "default": {
+                        "replicas": 1,
+                        "profile": "small"
+                    },
+                    "properties": {
+                        "replicas": {
+                            "type": "integer",
+                            "exclusiveMinimum": 0,
+                            "maximum": 5
+                        },
+                        "profile": {
+                            "type": "string",
+                            "enum": [
+                                "small",
+                                "medium",
+                                "large"
+                            ]
+                        }
+                    },
+                    "additionalProperties": false
+                }
+            },
+            "additionalProperties": false
+        },
+        "manifestVersion": {
+            "description": "[DEPRECATED] Please use \"manifest_version\" instead.",
+            "const": "subsquid.io/v0.1"
         },
         "deploy": {
             "type": "object",
@@ -258,7 +349,7 @@
                             "minItems": 1,
                             "items": {
                                 "type": "string",
-                                "pattern": "^([:\\-\\/\\w.]+|&&)$"
+                                "pattern": "^[:\\-\\/\\w.]+$"
                             }
                         }
                     },
@@ -266,6 +357,89 @@
                         "cmd"
                     ],
                     "additionalProperties": false
+                },
+                "migrate": {
+                    "type": "object",
+                    "description": "[DEPRECATED] Please use \"init\" instead",
+                    "properties": {
+                        "env": {
+                            "type": "object",
+                            "properties": {
+                                "/^[a-zA-Z_][a-zA-Z0-9_]*$/": {
+                                    "type": "string",
+                                    "properties": {},
+                                    "required": [],
+                                    "additionalProperties": false
+                                }
+                            },
+                            "additionalProperties": false,
+                            "patternProperties": {
+                                "^[a-zA-Z_][a-zA-Z0-9_]*$": {
+                                    "type": "string",
+                                    "properties": {},
+                                    "required": [],
+                                    "additionalProperties": false
+                                }
+                            }
+                        },
+                        "cmd": {
+                            "type": "array",
+                            "minItems": 1,
+                            "items": {
+                                "type": "string",
+                                "pattern": "^[:\\-\\/\\w.]+$"
+                            }
+                        }
+                    },
+                    "required": [
+                        "cmd"
+                    ],
+                    "additionalProperties": false
+                },
+                "api": {
+                    "type": "object",
+                    "properties": {
+                        "env": {
+                            "type": "object",
+                            "properties": {
+                                "/^[a-zA-Z_][a-zA-Z0-9_]*$/": {
+                                    "type": "string",
+                                    "properties": {},
+                                    "required": [],
+                                    "additionalProperties": false
+                                }
+                            },
+                            "additionalProperties": false,
+                            "patternProperties": {
+                                "^[a-zA-Z_][a-zA-Z0-9_]*$": {
+                                    "type": "string",
+                                    "properties": {},
+                                    "required": [],
+                                    "additionalProperties": false
+                                }
+                            }
+                        },
+                        "cmd": {
+                            "type": "array",
+                            "minItems": 1,
+                            "items": {
+                                "type": "string",
+                                "pattern": "^[:\\-\\/\\w.]+$"
+                            }
+                        }
+                    },
+                    "required": [
+                        "cmd"
+                    ],
+                    "additionalProperties": false
+                },
+                "secrets": {
+                    "type": "array",
+                    "description": "[DEPRECATED] Please use secrets context https://docs.subsquid.io/cloud/resources/env-variables/#secrets",
+                    "items": {
+                        "type": "string",
+                        "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$"
+                    }
                 },
                 "processor": {
                     "anyOf": [
@@ -302,7 +476,7 @@
                                     "minItems": 1,
                                     "items": {
                                         "type": "string",
-                                        "pattern": "^([:\\-\\/\\w.]+|&&)$"
+                                        "pattern": "^[:\\-\\/\\w.]+$"
                                     }
                                 }
                             },
@@ -312,193 +486,103 @@
                             "additionalProperties": false
                         },
                         {
-                            "type": "array",
-                            "uniqueItems": true,
-                            "minItems": 1,
-                            "items": {
-                                "type": "object",
-                                "properties": {
-                                    "name": {
-                                        "type": "string",
-                                        "pattern": "[a-z0-9]([-a-z0-9]*[a-z0-9])?",
-                                        "maxLength": 63
-                                    },
-                                    "env": {
-                                        "type": "object",
-                                        "properties": {
-                                            "/^[a-zA-Z_][a-zA-Z0-9_]*$/": {
-                                                "type": "string",
-                                                "properties": {},
-                                                "required": [],
-                                                "additionalProperties": false
+                            "anyOf": [
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "name": {
+                                            "type": "string",
+                                            "pattern": "[a-z0-9]([-a-z0-9]*[a-z0-9])?",
+                                            "maxLength": 63
+                                        },
+                                        "env": {
+                                            "type": "object",
+                                            "properties": {
+                                                "/^[a-zA-Z_][a-zA-Z0-9_]*$/": {
+                                                    "type": "string",
+                                                    "properties": {},
+                                                    "required": [],
+                                                    "additionalProperties": false
+                                                }
+                                            },
+                                            "additionalProperties": false,
+                                            "patternProperties": {
+                                                "^[a-zA-Z_][a-zA-Z0-9_]*$": {
+                                                    "type": "string",
+                                                    "properties": {},
+                                                    "required": [],
+                                                    "additionalProperties": false
+                                                }
                                             }
                                         },
-                                        "additionalProperties": false,
-                                        "patternProperties": {
-                                            "^[a-zA-Z_][a-zA-Z0-9_]*$": {
+                                        "cmd": {
+                                            "type": "array",
+                                            "minItems": 1,
+                                            "items": {
                                                 "type": "string",
-                                                "properties": {},
-                                                "required": [],
-                                                "additionalProperties": false
+                                                "pattern": "^[:\\-\\/\\w.]+$"
                                             }
                                         }
                                     },
-                                    "cmd": {
-                                        "type": "array",
-                                        "minItems": 1,
-                                        "items": {
-                                            "type": "string",
-                                            "pattern": "^([:\\-\\/\\w.]+|&&)$"
-                                        }
-                                    }
+                                    "required": [
+                                        "cmd"
+                                    ],
+                                    "additionalProperties": false
                                 },
-                                "required": [
-                                    "name",
-                                    "cmd"
-                                ],
-                                "additionalProperties": false
-                            }
+                                {
+                                    "type": "array",
+                                    "uniqueItems": true,
+                                    "minItems": 1,
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "name": {
+                                                "type": "string",
+                                                "pattern": "[a-z0-9]([-a-z0-9]*[a-z0-9])?",
+                                                "maxLength": 63
+                                            },
+                                            "env": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "/^[a-zA-Z_][a-zA-Z0-9_]*$/": {
+                                                        "type": "string",
+                                                        "properties": {},
+                                                        "required": [],
+                                                        "additionalProperties": false
+                                                    }
+                                                },
+                                                "additionalProperties": false,
+                                                "patternProperties": {
+                                                    "^[a-zA-Z_][a-zA-Z0-9_]*$": {
+                                                        "type": "string",
+                                                        "properties": {},
+                                                        "required": [],
+                                                        "additionalProperties": false
+                                                    }
+                                                }
+                                            },
+                                            "cmd": {
+                                                "type": "array",
+                                                "minItems": 1,
+                                                "items": {
+                                                    "type": "string",
+                                                    "pattern": "^[:\\-\\/\\w.]+$"
+                                                }
+                                            }
+                                        },
+                                        "required": [
+                                            "name",
+                                            "cmd"
+                                        ],
+                                        "additionalProperties": false
+                                    }
+                                }
+                            ]
                         }
                     ]
-                },
-                "api": {
-                    "type": "object",
-                    "properties": {
-                        "env": {
-                            "type": "object",
-                            "properties": {
-                                "/^[a-zA-Z_][a-zA-Z0-9_]*$/": {
-                                    "type": "string",
-                                    "properties": {},
-                                    "required": [],
-                                    "additionalProperties": false
-                                }
-                            },
-                            "additionalProperties": false,
-                            "patternProperties": {
-                                "^[a-zA-Z_][a-zA-Z0-9_]*$": {
-                                    "type": "string",
-                                    "properties": {},
-                                    "required": [],
-                                    "additionalProperties": false
-                                }
-                            }
-                        },
-                        "cmd": {
-                            "type": "array",
-                            "minItems": 1,
-                            "items": {
-                                "type": "string",
-                                "pattern": "^([:\\-\\/\\w.]+|&&)$"
-                            }
-                        }
-                    },
-                    "required": [
-                        "cmd"
-                    ],
-                    "additionalProperties": false
-                },
-                "secrets": {
-                    "type": "array",
-                    "description": "[DEPRECATED] Please use secrets context https://docs.subsquid.io/cloud/resources/env-variables/#secrets",
-                    "items": {
-                        "type": "string",
-                        "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$"
-                    }
                 }
             },
             "additionalProperties": false
-        },
-        "scale": {
-            "type": "object",
-            "properties": {
-                "dedicated": {
-                    "type": "boolean"
-                },
-                "addons": {
-                    "type": "object",
-                    "properties": {
-                        "postgres": {
-                            "type": "object",
-                            "properties": {
-                                "storage": {
-                                    "type": "string"
-                                },
-                                "profile": {
-                                    "type": "string",
-                                    "enum": [
-                                        "small",
-                                        "medium",
-                                        "large"
-                                    ]
-                                }
-                            },
-                            "additionalProperties": false
-                        },
-                        "rpc": {
-                            "type": "object",
-                            "description": "[DEPRECATED] Please use billing settings in Cloud UI",
-                            "properties": {
-                                "monthly-cap": {
-                                    "type": "string",
-                                    "pattern": "\\d+[km]"
-                                },
-                                "max-rate": {
-                                    "type": "string",
-                                    "pattern": "\\d+rp[sm]"
-                                }
-                            },
-                            "additionalProperties": false
-                        }
-                    },
-                    "additionalProperties": false
-                },
-                "processor": {
-                    "type": "object",
-                    "default": {
-                        "profile": "small"
-                    },
-                    "properties": {
-                        "profile": {
-                            "type": "string",
-                            "enum": [
-                                "small",
-                                "medium",
-                                "large"
-                            ]
-                        }
-                    },
-                    "additionalProperties": false
-                },
-                "api": {
-                    "type": "object",
-                    "default": {
-                        "replicas": 1,
-                        "profile": "small"
-                    },
-                    "properties": {
-                        "replicas": {
-                            "type": "integer",
-                            "exclusiveMinimum": 0,
-                            "maximum": 5
-                        },
-                        "profile": {
-                            "type": "string",
-                            "enum": [
-                                "small",
-                                "medium",
-                                "large"
-                            ]
-                        }
-                    },
-                    "additionalProperties": false
-                }
-            },
-            "additionalProperties": false
-        },
-        "manifestVersion": {
-            "description": "[DEPRECATED] Please use \"manifest_version\" instead.",
-            "const": "subsquid.io/v0.1"
         }
     },
     "required": [

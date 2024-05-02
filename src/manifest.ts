@@ -5,7 +5,7 @@ import { cloneDeep, defaultsDeep, get, isNil, mapValues, omitBy, set } from 'lod
 import { manifestSchema } from './schema';
 import { ManifestValue, ManifestProcessor, ManifestDeploymentConfig } from './types';
 
-export type ManifestParsiongOptions = {
+export type ManifestParsingOptions = {
   validation?: { allowUnknown?: boolean };
 };
 
@@ -232,7 +232,7 @@ export class Manifest {
       : { value: res };
   }
 
-  static validate(value: Partial<ManifestValue>, options: ManifestParsiongOptions = {}) {
+  static validate(value: Partial<ManifestValue>, options: ManifestParsingOptions = {}) {
     const res = manifestSchema.validate(value, {
       allowUnknown: options.validation?.allowUnknown,
       abortEarly: false,
@@ -253,7 +253,7 @@ export class Manifest {
     }
   }
 
-  static parse(str: string, options: ManifestParsiongOptions = {}) {
+  static parse(str: string, options: ManifestParsingOptions = {}) {
     try {
       const raw = yaml.load(str || '{}') as Partial<ManifestValue>;
 
