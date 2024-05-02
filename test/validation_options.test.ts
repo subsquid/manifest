@@ -1,8 +1,8 @@
-import { Manifest } from '../src';
+import { Manifest, ManifestParsingError } from '../src';
 
 describe('Validation options', () => {
   it('should should not allow unknown by default', () => {
-    const m = Manifest.parse(
+    const { error } = Manifest.parse(
       `
     manifest_version: subsquid.io/v0.1
     name: test
@@ -19,11 +19,11 @@ describe('Validation options', () => {
     `,
     );
 
-    expect(m.hasError()).toEqual(true);
+    expect(error).toBeInstanceOf(ManifestParsingError);
   });
 
   it('should should allow unknown', () => {
-    const m = Manifest.parse(
+    const { error, value } = Manifest.parse(
       `
     manifest_version: subsquid.io/v0.1
     name: test
@@ -42,8 +42,8 @@ describe('Validation options', () => {
       { validation: { allowUnknown: true } },
     );
 
-    expect(m.hasError()).toEqual(false);
-    expect(m.values()).toMatchObject({
+    expect(error).toBeUndefined();
+    expect(value).toMatchObject({
       test: 1,
     });
   });

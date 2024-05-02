@@ -1,5 +1,6 @@
 import { extendedJoi as Joi } from './joi';
 import { RPC_ENDPOINT_NAMES } from './rpc_networks';
+import { ManifestProcessor, ManifestValue } from './types';
 
 export const SECRET_NAME_PATTERN = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
 export const SQUID_NAME_PATTERN = /^[a-z0-9][a-z0-9\-]*[a-z0-9]$/;
@@ -34,7 +35,7 @@ export const JoiSquidVersionName = Joi.number()
 const envSchema = Joi.object().pattern(ENV_NAME_PATTERN, Joi.envString().required());
 
 const cmdSchema = Joi.string()
-  .regex(/^([:\-\/\w.]+|&&)$/)
+  .regex(/^[:\-\/\w.]+$/)
   .required()
   .messages({
     'string.pattern.base':
@@ -49,14 +50,14 @@ export const processorSchema = (multi = true) => {
     nameSchema = nameSchema.required();
   }
 
-  return Joi.object({
+  return Joi.object<ManifestProcessor>({
     name: nameSchema,
     env: envSchema,
     cmd: Joi.array().items(cmdSchema).min(1).required(),
   });
 };
 
-export const manifestSchema = Joi.object({
+export const manifestSchema = Joi.object<ManifestValue>({
   manifest_version: Joi.string().valid(...AVAILABLE_MANIFEST_VERSIONS),
   name: JoiSquidName,
   version: JoiSquidVersionName,
@@ -104,13 +105,24 @@ export const manifestSchema = Joi.object({
       cmd: Joi.array().items(cmdSchema).min(1).required(),
     }).allow(false),
 
-    processor: Joi.array()
-      .items(processorSchema(true))
-      .unique((a, b) => a.name === b.name)
-      .messages({
-        'array.unique': 'Processor names must be unique within a squid',
+    migrate: Joi.object({
+      env: envSchema,
+      cmd: Joi.array().items(cmdSchema).min(1).required(),
+    })
+      .description('[DEPRECATED] Please use "deploy.init" instead')
+      .allow(false),
+
+    processor: Joi.alternatives()
+      .conditional(Joi.array(), {
+        then: Joi.array()
+          .items(processorSchema(true))
+          .unique((a, b) => a.name === b.name)
+          .messages({
+            'array.unique': 'Processor names must be unique within a squid',
+          })
+          .min(1),
+        otherwise: processorSchema(false),
       })
-      .min(1)
       .required(),
 
     api: Joi.object({

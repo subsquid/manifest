@@ -1,8 +1,8 @@
-import { Manifest } from '../src';
+import { Manifest, ManifestParsingError } from '../src';
 
 describe('Syntax errors', () => {
   it('should return indentation error', () => {
-    const m = Manifest.parse(`
+    const { error } = Manifest.parse(`
       manifest_version: subsquid.io/v0.1
       name: sasdasd
       version: 1
@@ -14,9 +14,9 @@ describe('Syntax errors', () => {
           cmd: [ "node", "lib/processor" ]
     `);
 
-    expect(m.getErrors()).toEqual([
-      'Validation error occurred:',
-      `1) bad indentation of a mapping entry (5:13)
+    expect(error).toEqual(
+      new ManifestParsingError([
+        `bad indentation of a mapping entry (5:13)
 
  2 |       manifest_version: subsquid.io/v0.1
  3 |       name: sasdasd
@@ -25,6 +25,7 @@ describe('Syntax errors', () => {
 -----------------^
  6 |       deploy:
  7 |         api:`,
-    ]);
+      ]),
+    );
   });
 });

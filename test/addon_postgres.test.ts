@@ -1,8 +1,8 @@
-import { Manifest } from '../src';
+import { Manifest, ManifestParsingError } from '../src';
 
 describe('Addon Postgres', () => {
   it('should accept rpc with dots', () => {
-    const m = Manifest.parse(`
+    const { error } = Manifest.parse(`
     manifestVersion: subsquid.io/v0.1
     name: test
     version: 1
@@ -18,11 +18,11 @@ describe('Addon Postgres', () => {
           - acala.http
     `);
 
-    expect(m.hasError()).toEqual(false);
+    expect(error).toBeUndefined();
   });
 
   it('should restrict unknown network', () => {
-    const m = Manifest.parse(`
+    const { error } = Manifest.parse(`
     manifestVersion: subsquid.io/v0.1
     name: test
     version: 1
@@ -38,6 +38,6 @@ describe('Addon Postgres', () => {
           - unknown
     `);
 
-    expect(m.hasError()).toEqual(true);
+    expect(error).toBeInstanceOf(ManifestParsingError);
   });
 });

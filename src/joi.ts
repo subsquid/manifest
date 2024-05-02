@@ -21,7 +21,7 @@ export const extendedJoi = Joi.extend(
       },
     },
   }),
-);
+) as Joi;
 
 interface Joi extends Joi.Root {
   envString(): Joi.StringSchema;
