@@ -112,16 +112,18 @@ export const manifestSchema = Joi.object<ManifestValue>({
       .description('[DEPRECATED] Please use "deploy.init" instead')
       .allow(false),
 
-    processor: Joi.alternatives(
-      processorSchema(false),
-      Joi.array()
-        .items(processorSchema(true))
-        .unique((a, b) => a.name === b.name)
-        .messages({
-          'array.unique': 'Processor names must be unique within a squid',
-        })
-        .min(1),
-    ).required(),
+    processor: Joi.alternatives()
+      .conditional(Joi.array(), {
+        then: Joi.array()
+          .items(processorSchema(true))
+          .unique((a, b) => a.name === b.name)
+          .messages({
+            'array.unique': 'Processor names must be unique within a squid',
+          })
+          .min(1),
+        otherwise: processorSchema(false),
+      })
+      .required(),
 
     api: Joi.object({
       env: envSchema,

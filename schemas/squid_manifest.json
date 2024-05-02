@@ -360,7 +360,7 @@
                 },
                 "migrate": {
                     "type": "object",
-                    "description": "[DEPRECATED] Please use \"init\" instead",
+                    "description": "[DEPRECATED] Please use \"deploy.init\" instead",
                     "properties": {
                         "env": {
                             "type": "object",
@@ -486,8 +486,15 @@
                             "additionalProperties": false
                         },
                         {
-                            "anyOf": [
-                                {
+                            "if": {
+                                "type": "array",
+                                "items": {}
+                            },
+                            "then": {
+                                "type": "array",
+                                "uniqueItems": true,
+                                "minItems": 1,
+                                "items": {
                                     "type": "object",
                                     "properties": {
                                         "name": {
@@ -525,59 +532,54 @@
                                         }
                                     },
                                     "required": [
+                                        "name",
                                         "cmd"
                                     ],
                                     "additionalProperties": false
-                                },
-                                {
-                                    "type": "array",
-                                    "uniqueItems": true,
-                                    "minItems": 1,
-                                    "items": {
+                                }
+                            },
+                            "else": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "pattern": "[a-z0-9]([-a-z0-9]*[a-z0-9])?",
+                                        "maxLength": 63
+                                    },
+                                    "env": {
                                         "type": "object",
                                         "properties": {
-                                            "name": {
+                                            "/^[a-zA-Z_][a-zA-Z0-9_]*$/": {
                                                 "type": "string",
-                                                "pattern": "[a-z0-9]([-a-z0-9]*[a-z0-9])?",
-                                                "maxLength": 63
-                                            },
-                                            "env": {
-                                                "type": "object",
-                                                "properties": {
-                                                    "/^[a-zA-Z_][a-zA-Z0-9_]*$/": {
-                                                        "type": "string",
-                                                        "properties": {},
-                                                        "required": [],
-                                                        "additionalProperties": false
-                                                    }
-                                                },
-                                                "additionalProperties": false,
-                                                "patternProperties": {
-                                                    "^[a-zA-Z_][a-zA-Z0-9_]*$": {
-                                                        "type": "string",
-                                                        "properties": {},
-                                                        "required": [],
-                                                        "additionalProperties": false
-                                                    }
-                                                }
-                                            },
-                                            "cmd": {
-                                                "type": "array",
-                                                "minItems": 1,
-                                                "items": {
-                                                    "type": "string",
-                                                    "pattern": "^[:\\-\\/\\w.]+$"
-                                                }
+                                                "properties": {},
+                                                "required": [],
+                                                "additionalProperties": false
                                             }
                                         },
-                                        "required": [
-                                            "name",
-                                            "cmd"
-                                        ],
-                                        "additionalProperties": false
+                                        "additionalProperties": false,
+                                        "patternProperties": {
+                                            "^[a-zA-Z_][a-zA-Z0-9_]*$": {
+                                                "type": "string",
+                                                "properties": {},
+                                                "required": [],
+                                                "additionalProperties": false
+                                            }
+                                        }
+                                    },
+                                    "cmd": {
+                                        "type": "array",
+                                        "minItems": 1,
+                                        "items": {
+                                            "type": "string",
+                                            "pattern": "^[:\\-\\/\\w.]+$"
+                                        }
                                     }
-                                }
-                            ]
+                                },
+                                "required": [
+                                    "cmd"
+                                ],
+                                "additionalProperties": false
+                            }
                         }
                     ]
                 }

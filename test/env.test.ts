@@ -15,10 +15,16 @@ describe('Env', () => {
             OBJECT: {}
         processor:
           cmd: [ "node", "lib/processor" ]
+          env:
+            ARRAY: []
+            OBJECT: {}
+
       `);
 
     expect(error).toEqual(
       new ManifestParsingError('Validation error occurred', [
+        '"deploy.processor.env.ARRAY" must be a string',
+        '"deploy.processor.env.OBJECT" must be a string',
         '"deploy.api.env.ARRAY" must be a string',
         '"deploy.api.env.OBJECT" must be a string',
       ]),
