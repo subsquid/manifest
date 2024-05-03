@@ -41,7 +41,9 @@ export type ManifestScaleConfig = {
   dedicated?: boolean;
   addons?: {
     postgres?: {
-      storage: string;
+      storage?: string;
+      autoresize?: boolean;
+      autoresize_limit?: string;
       profile: 'small' | 'medium' | 'large';
       default_storage?: boolean;
     };

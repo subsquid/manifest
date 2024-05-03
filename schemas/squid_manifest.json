@@ -467,6 +467,12 @@
                                 "storage": {
                                     "type": "string"
                                 },
+                                "autoresize": {
+                                    "type": "boolean"
+                                },
+                                "autoresize_limit": {
+                                    "type": "string"
+                                },
                                 "profile": {
                                     "type": "string",
                                     "enum": [

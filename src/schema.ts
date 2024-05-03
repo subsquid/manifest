@@ -146,6 +146,8 @@ export const manifestSchema = Joi.object<ManifestValue>({
     addons: Joi.object({
       postgres: Joi.object({
         storage: Joi.string(),
+        autoresize: Joi.bool(),
+        autoresize_limit: Joi.string(),
         profile: Joi.string().valid('small', 'medium', 'large'),
       }),
 

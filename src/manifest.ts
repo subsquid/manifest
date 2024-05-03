@@ -61,6 +61,7 @@ export class Manifest {
         },
       });
     }
+
     if (this.deploy?.processor) {
       defaultsDeep(this, {
         scale: {
@@ -70,6 +71,7 @@ export class Manifest {
         },
       });
     }
+
     if (this.deploy?.addons?.postgres) {
       defaultsDeep(this, {
         deploy: {
