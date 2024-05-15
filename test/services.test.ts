@@ -120,7 +120,7 @@ describe('Services', () => {
     expect(m.hasError()).toEqual(false);
   });
 
-  it('should allow && in cmd', () => {
+  it('should disallow && in cmd', () => {
     const m = Manifest.parse(`
       manifest_version: subsquid.io/v0.1
       name: test
@@ -133,6 +133,10 @@ describe('Services', () => {
           cmd: [ "sqd", "node", "." ]
     `);
 
-    expect(m.hasError()).toEqual(false);
+    expect(m.hasError()).toEqual(true);
+    expect(m.getErrors()).toEqual([
+      'Validation error occurred:',
+      '1) "deploy.api.cmd[2]" with value "&&" is invalid. Only latin letters, numbers, ".", "-", "_", "/" and ":" symbols are allowed.',
+    ]);
   });
 });
