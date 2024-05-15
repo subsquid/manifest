@@ -118,6 +118,8 @@
   { "name": "shiden", "type": "evm" },
   { "name": "shiden", "type": "substrate" },
 
+  { "name": "solana", "type": "solana" },
+
   { "name": "turing", "type": "substrate" },
 
   { "name": "zeitgeist", "type": "substrate" }

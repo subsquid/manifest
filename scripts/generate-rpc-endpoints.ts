@@ -2,7 +2,7 @@ import * as fs from 'node:fs';
 
 import { groupBy, mapValues } from 'lodash';
 
-export type Network = { name: string; type: 'evm' | 'substrate' };
+export type Network = { name: string; type: 'evm' | 'solana' | 'substrate' };
 
 function loadNetworksFile(): Network[] {
   return JSON.parse(fs.readFileSync('./networks.json').toString('utf-8'));
@@ -30,18 +30,20 @@ const NETWORKS = Object.entries(TMP_NETWORKS).map(([network, { types }]) => {
 
 const RPC_ENDPOINTS = NETWORKS.flatMap(r => r.endpoints.map(r => r.name));
 
+const RPC_TYPES = [...new Set(NETWORKS.flatMap(r => r.endpoints.map(r => r.type)))].sort();
+
 const content = `
-/** 
+/**
 *
 THIS FILE WAS AUTO-GENERATED. PLEASE DO NOT EDIT IT.
 *
-**/  
+**/
 
 export type NetworkName = "${Object.keys(TMP_NETWORKS).join('" | "')}";
 
 export type RpcEndpointName = "${RPC_ENDPOINTS.join('" | "')}";
 
-export type RpcEndpointType = 'evm' | 'substrate';
+export type RpcEndpointType = "${RPC_TYPES.join('" | "')}";
 
 export const NETWORKS: { network: NetworkName, endpoints: { name: RpcEndpointName, type: RpcEndpointType  }[] }[] = ${JSON.stringify(NETWORKS)} as const;
 

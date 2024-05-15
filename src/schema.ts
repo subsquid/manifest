@@ -34,7 +34,7 @@ export const JoiSquidVersionName = Joi.number()
 const envSchema = Joi.object().pattern(ENV_NAME_PATTERN, Joi.envString().required());
 
 const cmdSchema = Joi.string()
-  .regex(/^([:\-\/\w.]+|&&)$/)
+  .regex(/^[:\-\/\w.]+$/)
   .required()
   .messages({
     'string.pattern.base':

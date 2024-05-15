@@ -1,4 +1,4 @@
-/** 
+/**
 *
 THIS FILE WAS AUTO-GENERATED. PLEASE DO NOT EDIT IT.
 *
@@ -74,6 +74,7 @@ export type NetworkName =
   | 'rococo'
   | 'shibuya'
   | 'shiden'
+  | 'solana'
   | 'turing'
   | 'zeitgeist';
 
@@ -152,10 +153,11 @@ export type RpcEndpointName =
   | 'shibuya-substrate.http'
   | 'shiden.http'
   | 'shiden-substrate.http'
+  | 'solana.http'
   | 'turing.http'
   | 'zeitgeist.http';
 
-export type RpcEndpointType = 'evm' | 'substrate';
+export type RpcEndpointType = 'evm' | 'solana' | 'substrate';
 
 export const NETWORKS: {
   network: NetworkName;
@@ -296,6 +298,7 @@ export const NETWORKS: {
       { name: 'shiden-substrate.http', type: 'substrate' },
     ],
   },
+  { network: 'solana', endpoints: [{ name: 'solana.http', type: 'solana' }] },
   { network: 'turing', endpoints: [{ name: 'turing.http', type: 'substrate' }] },
   { network: 'zeitgeist', endpoints: [{ name: 'zeitgeist.http', type: 'substrate' }] },
 ] as const;
@@ -375,6 +378,7 @@ export const RPC_ENDPOINT_NAMES: RpcEndpointName[] = [
   'shibuya-substrate.http',
   'shiden.http',
   'shiden-substrate.http',
+  'solana.http',
   'turing.http',
   'zeitgeist.http',
 ] as const;

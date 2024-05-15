@@ -293,6 +293,7 @@
                                     "shibuya-substrate.http",
                                     "shiden.http",
                                     "shiden-substrate.http",
+                                    "solana.http",
                                     "turing.http",
                                     "zeitgeist.http"
                                 ]
