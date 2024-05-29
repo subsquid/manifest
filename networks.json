@@ -29,6 +29,8 @@
 
   { "name": "basilisk", "type": "substrate" },
 
+  { "name": "blast-l2", "type": "evm" },
+
   { "name": "bridge-hub-kusama", "type": "substrate" },
   { "name": "bridge-hub-polkadot", "type": "substrate" },
   { "name": "bridge-hub-rococo", "type": "substrate" },
@@ -77,9 +79,12 @@
 
   { "name": "kusama", "type": "substrate" },
 
+  { "name": "linea", "type": "evm" },
+
   { "name": "litentry", "type": "substrate" },
 
   { "name": "mantle", "type": "evm" },
+  { "name": "mantle-sepolia", "type": "evm" },
 
   { "name": "metis", "type": "evm" },
 
@@ -94,6 +99,9 @@
 
   { "name": "oktc", "type": "evm" },
 
+  { "name": "opbnb", "type": "evm" },
+  { "name": "opbnb-testnet", "type": "evm" },
+
   { "name": "optimism", "type": "evm" },
   { "name": "optimism-goerli", "type": "evm" },
 
@@ -106,11 +114,16 @@
   { "name": "polkadot", "type": "substrate" },
 
   { "name": "polygon", "type": "evm" },
+  { "name": "polygon-amoy-testnet", "type": "evm" },
   { "name": "polygon-testnet", "type": "evm" },
   { "name": "polygon-zkevm", "type": "evm" },
+  { "name": "polygon-zkevm-cardona-testnet", "type": "evm" },
   { "name": "polygon-zkevm-testnet", "type": "evm" },
 
   { "name": "rococo", "type": "substrate" },
+
+  { "name": "scroll", "type": "evm" },
+  { "name": "scroll-sepolia", "type": "evm" },
 
   { "name": "shibuya", "type": "evm" },
   { "name": "shibuya", "type": "substrate" },
@@ -122,5 +135,8 @@
 
   { "name": "turing", "type": "substrate" },
 
-  { "name": "zeitgeist", "type": "substrate" }
+  { "name": "zeitgeist", "type": "substrate" },
+
+  { "name": "zksync", "type": "evm" },
+  { "name": "zksync-sepolia", "type": "evm" }
 ]
