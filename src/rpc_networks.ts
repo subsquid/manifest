@@ -1,4 +1,4 @@
-/** 
+/**
 *
 THIS FILE WAS AUTO-GENERATED. PLEASE DO NOT EDIT IT.
 *
@@ -24,6 +24,7 @@ export type NetworkName =
   | 'base-goerli'
   | 'base-sepolia'
   | 'basilisk'
+  | 'blast-l2'
   | 'bridge-hub-kusama'
   | 'bridge-hub-polkadot'
   | 'bridge-hub-rococo'
@@ -53,14 +54,18 @@ export type NetworkName =
   | 'kilt'
   | 'kintsugi'
   | 'kusama'
+  | 'linea'
   | 'litentry'
   | 'mantle'
+  | 'mantle-sepolia'
   | 'metis'
   | 'moonbase-alpha'
   | 'moonbase'
   | 'moonbeam'
   | 'moonriver'
   | 'oktc'
+  | 'opbnb'
+  | 'opbnb-testnet'
   | 'optimism'
   | 'optimism-goerli'
   | 'pendulum'
@@ -68,14 +73,21 @@ export type NetworkName =
   | 'polkadex'
   | 'polkadot'
   | 'polygon'
+  | 'polygon-amoy-testnet'
   | 'polygon-testnet'
   | 'polygon-zkevm'
+  | 'polygon-zkevm-cardona-testnet'
   | 'polygon-zkevm-testnet'
   | 'rococo'
+  | 'scroll'
+  | 'scroll-sepolia'
   | 'shibuya'
   | 'shiden'
+  | 'solana'
   | 'turing'
-  | 'zeitgeist';
+  | 'zeitgeist'
+  | 'zksync'
+  | 'zksync-sepolia';
 
 export type RpcEndpointName =
   | 'acala.http'
@@ -98,6 +110,7 @@ export type RpcEndpointName =
   | 'base-goerli.http'
   | 'base-sepolia.http'
   | 'basilisk.http'
+  | 'blast-l2.http'
   | 'bridge-hub-kusama.http'
   | 'bridge-hub-polkadot.http'
   | 'bridge-hub-rococo.http'
@@ -127,8 +140,10 @@ export type RpcEndpointName =
   | 'kilt.http'
   | 'kintsugi.http'
   | 'kusama.http'
+  | 'linea.http'
   | 'litentry.http'
   | 'mantle.http'
+  | 'mantle-sepolia.http'
   | 'metis.http'
   | 'moonbase-alpha.http'
   | 'moonbase.http'
@@ -137,6 +152,8 @@ export type RpcEndpointName =
   | 'moonriver.http'
   | 'moonriver-substrate.http'
   | 'oktc.http'
+  | 'opbnb.http'
+  | 'opbnb-testnet.http'
   | 'optimism.http'
   | 'optimism-goerli.http'
   | 'pendulum.http'
@@ -144,18 +161,25 @@ export type RpcEndpointName =
   | 'polkadex.http'
   | 'polkadot.http'
   | 'polygon.http'
+  | 'polygon-amoy-testnet.http'
   | 'polygon-testnet.http'
   | 'polygon-zkevm.http'
+  | 'polygon-zkevm-cardona-testnet.http'
   | 'polygon-zkevm-testnet.http'
   | 'rococo.http'
+  | 'scroll.http'
+  | 'scroll-sepolia.http'
   | 'shibuya.http'
   | 'shibuya-substrate.http'
   | 'shiden.http'
   | 'shiden-substrate.http'
+  | 'solana.http'
   | 'turing.http'
-  | 'zeitgeist.http';
+  | 'zeitgeist.http'
+  | 'zksync.http'
+  | 'zksync-sepolia.http';
 
-export type RpcEndpointType = 'evm' | 'substrate';
+export type RpcEndpointType = 'evm' | 'solana' | 'substrate';
 
 export const NETWORKS: {
   network: NetworkName;
@@ -201,6 +225,7 @@ export const NETWORKS: {
   { network: 'base-goerli', endpoints: [{ name: 'base-goerli.http', type: 'evm' }] },
   { network: 'base-sepolia', endpoints: [{ name: 'base-sepolia.http', type: 'evm' }] },
   { network: 'basilisk', endpoints: [{ name: 'basilisk.http', type: 'substrate' }] },
+  { network: 'blast-l2', endpoints: [{ name: 'blast-l2.http', type: 'evm' }] },
   {
     network: 'bridge-hub-kusama',
     endpoints: [{ name: 'bridge-hub-kusama.http', type: 'substrate' }],
@@ -248,8 +273,10 @@ export const NETWORKS: {
   { network: 'kilt', endpoints: [{ name: 'kilt.http', type: 'substrate' }] },
   { network: 'kintsugi', endpoints: [{ name: 'kintsugi.http', type: 'substrate' }] },
   { network: 'kusama', endpoints: [{ name: 'kusama.http', type: 'substrate' }] },
+  { network: 'linea', endpoints: [{ name: 'linea.http', type: 'evm' }] },
   { network: 'litentry', endpoints: [{ name: 'litentry.http', type: 'substrate' }] },
   { network: 'mantle', endpoints: [{ name: 'mantle.http', type: 'evm' }] },
+  { network: 'mantle-sepolia', endpoints: [{ name: 'mantle-sepolia.http', type: 'evm' }] },
   { network: 'metis', endpoints: [{ name: 'metis.http', type: 'evm' }] },
   { network: 'moonbase-alpha', endpoints: [{ name: 'moonbase-alpha.http', type: 'evm' }] },
   { network: 'moonbase', endpoints: [{ name: 'moonbase.http', type: 'substrate' }] },
@@ -268,6 +295,8 @@ export const NETWORKS: {
     ],
   },
   { network: 'oktc', endpoints: [{ name: 'oktc.http', type: 'evm' }] },
+  { network: 'opbnb', endpoints: [{ name: 'opbnb.http', type: 'evm' }] },
+  { network: 'opbnb-testnet', endpoints: [{ name: 'opbnb-testnet.http', type: 'evm' }] },
   { network: 'optimism', endpoints: [{ name: 'optimism.http', type: 'evm' }] },
   { network: 'optimism-goerli', endpoints: [{ name: 'optimism-goerli.http', type: 'evm' }] },
   { network: 'pendulum', endpoints: [{ name: 'pendulum.http', type: 'substrate' }] },
@@ -275,13 +304,23 @@ export const NETWORKS: {
   { network: 'polkadex', endpoints: [{ name: 'polkadex.http', type: 'substrate' }] },
   { network: 'polkadot', endpoints: [{ name: 'polkadot.http', type: 'substrate' }] },
   { network: 'polygon', endpoints: [{ name: 'polygon.http', type: 'evm' }] },
+  {
+    network: 'polygon-amoy-testnet',
+    endpoints: [{ name: 'polygon-amoy-testnet.http', type: 'evm' }],
+  },
   { network: 'polygon-testnet', endpoints: [{ name: 'polygon-testnet.http', type: 'evm' }] },
   { network: 'polygon-zkevm', endpoints: [{ name: 'polygon-zkevm.http', type: 'evm' }] },
+  {
+    network: 'polygon-zkevm-cardona-testnet',
+    endpoints: [{ name: 'polygon-zkevm-cardona-testnet.http', type: 'evm' }],
+  },
   {
     network: 'polygon-zkevm-testnet',
     endpoints: [{ name: 'polygon-zkevm-testnet.http', type: 'evm' }],
   },
   { network: 'rococo', endpoints: [{ name: 'rococo.http', type: 'substrate' }] },
+  { network: 'scroll', endpoints: [{ name: 'scroll.http', type: 'evm' }] },
+  { network: 'scroll-sepolia', endpoints: [{ name: 'scroll-sepolia.http', type: 'evm' }] },
   {
     network: 'shibuya',
     endpoints: [
@@ -296,8 +335,11 @@ export const NETWORKS: {
       { name: 'shiden-substrate.http', type: 'substrate' },
     ],
   },
+  { network: 'solana', endpoints: [{ name: 'solana.http', type: 'solana' }] },
   { network: 'turing', endpoints: [{ name: 'turing.http', type: 'substrate' }] },
   { network: 'zeitgeist', endpoints: [{ name: 'zeitgeist.http', type: 'substrate' }] },
+  { network: 'zksync', endpoints: [{ name: 'zksync.http', type: 'evm' }] },
+  { network: 'zksync-sepolia', endpoints: [{ name: 'zksync-sepolia.http', type: 'evm' }] },
 ] as const;
 
 export const RPC_ENDPOINT_NAMES: RpcEndpointName[] = [
@@ -321,6 +363,7 @@ export const RPC_ENDPOINT_NAMES: RpcEndpointName[] = [
   'base-goerli.http',
   'base-sepolia.http',
   'basilisk.http',
+  'blast-l2.http',
   'bridge-hub-kusama.http',
   'bridge-hub-polkadot.http',
   'bridge-hub-rococo.http',
@@ -350,8 +393,10 @@ export const RPC_ENDPOINT_NAMES: RpcEndpointName[] = [
   'kilt.http',
   'kintsugi.http',
   'kusama.http',
+  'linea.http',
   'litentry.http',
   'mantle.http',
+  'mantle-sepolia.http',
   'metis.http',
   'moonbase-alpha.http',
   'moonbase.http',
@@ -360,6 +405,8 @@ export const RPC_ENDPOINT_NAMES: RpcEndpointName[] = [
   'moonriver.http',
   'moonriver-substrate.http',
   'oktc.http',
+  'opbnb.http',
+  'opbnb-testnet.http',
   'optimism.http',
   'optimism-goerli.http',
   'pendulum.http',
@@ -367,14 +414,21 @@ export const RPC_ENDPOINT_NAMES: RpcEndpointName[] = [
   'polkadex.http',
   'polkadot.http',
   'polygon.http',
+  'polygon-amoy-testnet.http',
   'polygon-testnet.http',
   'polygon-zkevm.http',
+  'polygon-zkevm-cardona-testnet.http',
   'polygon-zkevm-testnet.http',
   'rococo.http',
+  'scroll.http',
+  'scroll-sepolia.http',
   'shibuya.http',
   'shibuya-substrate.http',
   'shiden.http',
   'shiden-substrate.http',
+  'solana.http',
   'turing.http',
   'zeitgeist.http',
+  'zksync.http',
+  'zksync-sepolia.http',
 ] as const;
