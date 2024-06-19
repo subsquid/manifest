@@ -89,6 +89,7 @@ export const manifestSchema = Joi.object<ManifestValue>({
       }).allow(null),
       hasura: Joi.object({
         version: Joi.string().default('latest'),
+        env: envSchema,
       }).allow(null),
       rpc: Joi.array().items(
         Joi.string()

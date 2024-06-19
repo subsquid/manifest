@@ -100,9 +100,7 @@ export class Manifest {
       defaultsDeep(this, {
         deploy: {
           addons: {
-            hasura: {
-              config: {},
-            },
+            hasura: {},
           },
         },
         scale: {
