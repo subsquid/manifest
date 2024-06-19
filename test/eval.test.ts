@@ -2,7 +2,24 @@ import { Manifest, ManifestEvaluatingError } from '../src';
 
 describe('Env Evaluation', () => {
   describe('eval', () => {
-    it('success', () => {
+    it('should not add an objects if it doesnt exist in the source manifest', () => {
+      const res = new Manifest({
+        manifest_version: 'subsquid.io/v0.1',
+        name: 'test',
+        version: 1,
+        deploy: {
+          processor: {
+            name: 'processor',
+          },
+        },
+      }).eval({});
+
+      expect(res.deploy?.env).toEqual(undefined);
+      expect(res.deploy?.api).toEqual(undefined);
+      expect(res.deploy?.init).toEqual(undefined);
+    });
+
+    it('should skip unclosed branches', () => {
       const res = new Manifest({
         manifest_version: 'subsquid.io/v0.1',
         name: 'test',
@@ -18,7 +35,7 @@ describe('Env Evaluation', () => {
           },
         },
       }).eval({
-        foo: 'foo',
+        foo: 'value1',
       });
 
       expect(res).toMatchObject({
@@ -27,7 +44,7 @@ describe('Env Evaluation', () => {
         version: 1,
         deploy: {
           env: {
-            foo: 'foo',
+            foo: 'value1',
             bar: 'bar',
             baz: '${{baz',
           },
@@ -36,7 +53,7 @@ describe('Env Evaluation', () => {
       });
     });
 
-    it('parsing error', () => {
+    it('should return parsing error for an invalid template', () => {
       const manifest = new Manifest({
         manifest_version: 'subsquid.io/v0.1',
         name: 'test',
@@ -55,8 +72,8 @@ describe('Env Evaluation', () => {
 
       expect(() =>
         manifest.eval({
-          foo: 'foo',
-          baz: 'baz',
+          foo: 'value1',
+          baz: 'value2',
         }),
       ).toThrow(
         new ManifestEvaluatingError([
@@ -65,7 +82,7 @@ describe('Env Evaluation', () => {
       );
     });
 
-    it('evaluation error', () => {
+    it('should return evaluation error if variable is missing in context', () => {
       const manifest = new Manifest({
         manifest_version: 'subsquid.io/v0.1',
         name: 'test',
@@ -84,7 +101,7 @@ describe('Env Evaluation', () => {
 
       expect(() =>
         manifest.eval({
-          foo: 'foo',
+          foo: 'value1',
         }),
       ).toThrow(
         new ManifestEvaluatingError([

@@ -96,17 +96,24 @@ export class Manifest {
       });
     }
 
-    // if (this.value?.deploy?.addons?.redis) {
-    //   this.value = defaultsDeep(this.value, {
-    //     scale: {
-    //       addons: {
-    //         redis: {
-    //           profile: 'small',
-    //         },
-    //       },
-    //     },
-    //   });
-    // }
+    if (this.deploy?.addons?.hasura) {
+      defaultsDeep(this, {
+        deploy: {
+          addons: {
+            hasura: {
+              config: {},
+            },
+          },
+        },
+        scale: {
+          addons: {
+            hasura: {
+              replicas: 1,
+            },
+          },
+        },
+      });
+    }
   }
 
   squidName() {
@@ -149,6 +156,8 @@ export class Manifest {
     }
 
     const _eval = (env: Record<string, Expression> | undefined, path: string) => {
+      if (!env) return undefined;
+
       return mapValues(env, (value, key) => {
         try {
           return value.eval(context);
@@ -167,8 +176,8 @@ export class Manifest {
       deploy: defaultsDeep(
         {
           env: _eval(parsed.env, 'deploy.env'),
-          init: { env: _eval(parsed.init.env, 'deploy.init.env') },
-          api: { env: _eval(parsed.api.env, 'deploy.api.env') },
+          init: parsed.init.env ? { env: _eval(parsed.init.env, 'deploy.init.env') } : undefined,
+          api: parsed.api.env ? { env: _eval(parsed.api.env, 'deploy.api.env') } : undefined,
           processor: parsed.processor.map((p, index) =>
             defaultsDeep(
               {
@@ -255,17 +264,14 @@ export class Manifest {
     try {
       const raw = yaml.load(str || '{}') as Partial<ManifestValue>;
 
-      ['build', 'deploy.api', 'deploy.addons.postgres'].map(path => {
+      ['build', 'deploy.api', 'deploy.addons.postgres', 'deploy.addons.hasura'].map(path => {
         if (get(raw, path) === null) {
           set(raw, path, {});
         }
       });
 
       const { error, value } = this.validate(raw, options);
-
-      if (error) {
-        return { error };
-      }
+      if (error) return { error };
 
       return {
         value: new Manifest(value),

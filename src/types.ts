@@ -21,6 +21,9 @@ export type ManifestDeploymentConfig = {
         max_pred_locks_per_transaction: number;
       };
     };
+    hasura?: {
+      version: string;
+    };
     rpc?: string[];
   };
   api?: {
@@ -46,6 +49,10 @@ export type ManifestScaleConfig = {
       autoresize_limit?: string;
       profile: 'small' | 'medium' | 'large';
       default_storage?: boolean;
+    };
+    hasura?: {
+      profile: 'small' | 'medium' | 'large';
+      replicas?: number;
     };
   };
   api?: {

@@ -87,6 +87,9 @@ export const manifestSchema = Joi.object<ManifestValue>({
           max_pred_locks_per_transaction: Joi.number().integer().positive(),
         }),
       }).allow(null),
+      hasura: Joi.object({
+        version: Joi.string().default('latest'),
+      }).allow(null),
       rpc: Joi.array().items(
         Joi.string()
           .valid(
@@ -148,6 +151,11 @@ export const manifestSchema = Joi.object<ManifestValue>({
         storage: Joi.string(),
         autoresize: Joi.bool(),
         autoresize_limit: Joi.string(),
+        profile: Joi.string().valid('small', 'medium', 'large'),
+      }),
+
+      hasura: Joi.object({
+        replicas: Joi.number().integer().positive().max(5),
         profile: Joi.string().valid('small', 'medium', 'large'),
       }),
 

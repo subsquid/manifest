@@ -1,7 +1,7 @@
 import { Manifest, ManifestParsingError } from '../src';
 
 describe('Services', () => {
-  it('should require processor in build section', () => {
+  it('should require processor in deploy section', () => {
     const { error } = Manifest.parse(`
     manifest_version: subsquid.io/v0.1
     name: test
@@ -13,6 +13,21 @@ describe('Services', () => {
     `);
 
     expect(error).toEqual(new ManifestParsingError(['"deploy.processor" is required']));
+  });
+
+  it('should allow deploy w/o api', () => {
+    const { error, value } = Manifest.parse(`
+    manifest_version: subsquid.io/v0.1
+    name: test
+    version: 1
+    build:
+    deploy:
+      processor:
+        cmd: ["test"]
+    `);
+
+    expect(error).toEqual(undefined);
+    expect(value?.deploy?.api).toEqual(undefined);
   });
 
   it('should add defaults to minimal manifest', () => {
