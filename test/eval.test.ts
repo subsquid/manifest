@@ -82,6 +82,35 @@ describe('Env Evaluation', () => {
       );
     });
 
+    it('should add processor index on invalid env template', () => {
+      const manifest = new Manifest({
+        manifest_version: 'subsquid.io/v0.1',
+        name: 'test',
+        version: 1,
+        deploy: {
+          processor: [
+            {
+              name: 'processor',
+              env: {
+                foo: '${{foo.}}',
+              },
+            },
+          ],
+        },
+      });
+
+      expect(() =>
+        manifest.eval({
+          foo: 'value1',
+          baz: 'value2',
+        }),
+      ).toThrow(
+        new ManifestEvaluatingError([
+          'Manifest env variable "deploy.processor.[0].env.foo" can not be mapped for "${{foo.}}" expression: Unexpected EOF [0,7]',
+        ]),
+      );
+    });
+
     it('should return evaluation error if variable is missing in context', () => {
       const manifest = new Manifest({
         manifest_version: 'subsquid.io/v0.1',

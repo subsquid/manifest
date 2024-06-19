@@ -33,4 +33,38 @@ describe('Addon Hasura', () => {
       },
     });
   });
+
+  it('should add secrtes', () => {
+    const res = new Manifest({
+      manifest_version: 'subsquid.io/v0.1',
+      name: 'test',
+      version: 1,
+      deploy: {
+        addons: {
+          hasura: {
+            env: {
+              HASURA_ADMIN_SECRET: '${{secrets.HASURA_ADMIN_SECRET}}',
+            },
+          },
+        },
+        processor: {
+          name: 'processor',
+        },
+      },
+    }).eval({
+      HASURA_ADMIN_SECRET: 'mysecret',
+    });
+
+    expect(res).toMatchObject({
+      manifest_version: 'subsquid.io/v0.1',
+      name: 'test',
+      version: 1,
+      deploy: {
+        env: {
+          HASURA_ADMIN_SECRET: 'mysecret',
+        },
+        processor: [{ name: 'processor' }],
+      },
+    });
+  });
 });

@@ -22,7 +22,7 @@ export type ManifestDeploymentConfig = {
       };
     };
     hasura?: {
-      version: string;
+      version?: string;
       env?: Record<string, string>;
     };
     rpc?: string[];
