@@ -19,6 +19,29 @@ describe('Env Evaluation', () => {
       expect(res.deploy?.init).toEqual(undefined);
     });
 
+    it('should override manifest', () => {
+      const manifest = new Manifest({
+        manifest_version: 'subsquid.io/v0.1',
+        name: 'test',
+        version: 1,
+        deploy: {
+          env: {
+            foo: '${{foo}}',
+          },
+          processor: {
+            name: 'processor',
+          },
+        },
+      });
+
+      const res = manifest.eval({
+        foo: 'value1',
+      });
+
+      expect(res.deploy?.env?.foo).toEqual('value1');
+      expect(manifest.deploy?.env?.foo).toEqual('${{foo}}');
+    });
+
     it('should skip unclosed branches', () => {
       const res = new Manifest({
         manifest_version: 'subsquid.io/v0.1',
