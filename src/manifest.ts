@@ -147,97 +147,86 @@ export class Manifest {
     return yaml.dump(this.values());
   }
 
-  eval(context: Record<string, any>): ManifestValue {
-    const { error: parseError, value: parsed } = this.parse();
-    if (parseError) {
-      throw parseError;
-    }
+  private getAllEnvPaths() {
+    return [
+      'deploy.env',
+      'deploy.init.env',
+      'deploy.api.env',
+      'deploy.addons.hasura.env',
+      ...(this.deploy?.processor.map((p, index) => `deploy.processor.[${index}].env`) || []),
+    ];
+  }
 
-    const _eval = (env: Record<string, Expression> | undefined, path: string) => {
-      if (!env) return undefined;
-
-      return mapValues(env, (value, key) => {
-        try {
-          return value.eval(context);
-        } catch (e) {
-          throw new ManifestEvaluatingError([
-            getError(`${path}.${key}`, get(this as ManifestValue, `${path}.${key}`), e),
-          ]);
-        }
-      });
-    };
-
+  eval(context: Record<string, unknown>): ManifestValue {
     const raw = this.toObject();
-
-    return {
-      ...raw,
-      deploy: defaultsDeep(
-        {
-          env: _eval(parsed.env, 'deploy.env'),
-          init: parsed.init.env ? { env: _eval(parsed.init.env, 'deploy.init.env') } : undefined,
-          api: parsed.api.env ? { env: _eval(parsed.api.env, 'deploy.api.env') } : undefined,
-          processor: parsed.processor.map((p, index) =>
-            defaultsDeep(
-              {
-                env: _eval(p.env, `deploy.processor.[${index}].env`),
-              },
-              raw.deploy?.processor?.[index],
-            ),
-          ),
-        },
-        raw.deploy,
-      ),
-    };
-  }
-
-  variables(path?: string[]) {
-    const res: Set<string> = new Set();
-
-    const { error: parseError, value: parsed } = this.parse();
-    if (parseError) {
-      throw parseError;
-    }
-
-    const _variables = (env: Record<string, Expression> | undefined) => {
-      mapValues(env, value => value.variables(path).forEach(v => res.add(v)));
-    };
-
-    _variables(parsed.env);
-    _variables(parsed.init.env);
-    _variables(parsed.api.env);
-    parsed.processor?.forEach(p => _variables(p.env));
-
-    return [...res];
-  }
-
-  private parse() {
+    const paths = this.getAllEnvPaths();
     const parser = new Parser();
     const errors: string[] = [];
 
-    const _parse = (env: Record<string, string> | undefined, path: string) => {
-      return env
-        ? mapValues(env, (value, key) => {
-            try {
-              return parser.parse(value);
-            } catch (e: unknown) {
-              errors.push(getError(`${path}.${key}`, value, e));
-              return new Expression(['']);
-            }
-          })
-        : undefined;
-    };
+    for (const path of paths) {
+      const envObject = get(raw, path);
+      if (!envObject) continue;
 
-    const res = {
-      env: _parse(this.deploy?.env, 'deploy.env'),
-      init: { env: _parse(this.deploy?.init?.env, 'deploy.init.env') },
-      api: { env: _parse(this.deploy?.api?.env, 'deploy.api.env') },
-      processor:
-        this.deploy?.processor?.map((p, index) => ({
-          env: _parse(p.env, `deploy.processor.[${index}].env`),
-        })) || [],
-    };
+      set(
+        raw,
+        path,
+        mapValues(envObject, (value, key) => {
+          let expr: Expression;
+          try {
+            expr = parser.parse(value);
+          } catch (e) {
+            errors.push(getError(`${path}.${key}`, value, e));
+            return value;
+          }
 
-    return errors.length > 0 ? { error: new ManifestEvaluatingError(errors) } : { value: res };
+          try {
+            return expr.eval(context);
+          } catch (e) {
+            errors.push(getError(`${path}.${key}`, value, e));
+            return value;
+          }
+        }),
+      );
+    }
+
+    if (errors.length) {
+      throw new ManifestEvaluatingError(errors);
+    }
+
+    return raw;
+  }
+
+  variables(prefix: string[] = []): string[] {
+    const raw = this.toObject();
+    const paths = this.getAllEnvPaths();
+    const parser = new Parser();
+    const errors: string[] = [];
+    const result = new Set<string>();
+
+    for (const path of paths) {
+      const envObject: Record<string, string> = get(raw, path);
+      if (!envObject) continue;
+
+      for (const [key, value] of Object.entries(envObject)) {
+        let expr: Expression;
+        try {
+          expr = parser.parse(value);
+        } catch (e) {
+          errors.push(getError(`${path}.${key}`, value, e));
+          continue;
+        }
+
+        for (const name of expr.variables(prefix)) {
+          result.add(name);
+        }
+      }
+    }
+
+    if (errors.length) {
+      throw new ManifestParsingError(errors);
+    }
+
+    return Array.from(result);
   }
 
   static validate(value: Partial<ManifestValue>, options: ManifestParsingOptions = {}) {

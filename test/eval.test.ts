@@ -141,7 +141,7 @@ describe('Env Evaluation', () => {
   });
 
   describe('variables', () => {
-    it('secrets', () => {
+    it('should return only secrets related variables', () => {
       const manifest = new Manifest({
         manifest_version: 'subsquid.io/v0.1',
         name: 'test',
@@ -156,13 +156,16 @@ describe('Env Evaluation', () => {
             env: { API: '${{secrets.API}}' },
           },
           init: {
-            env: { INIT: '${{secrets.INIT}}' },
+            env: {
+              INIT: '${{secrets.INIT}}',
+              MISSING: '${{rpc.INIT_DOWN}}',
+            },
           },
         },
       });
 
-      expect(manifest.variables(['secrets'])).toEqual(
-        expect.arrayContaining(['GLOBAL', 'PROCESSOR', 'API', 'INIT']),
+      expect(manifest.variables(['secrets']).sort()).toEqual(
+        ['GLOBAL', 'PROCESSOR', 'API', 'INIT'].sort(),
       );
     });
   });

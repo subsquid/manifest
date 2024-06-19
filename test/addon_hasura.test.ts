@@ -20,7 +20,6 @@ describe('Addon Hasura', () => {
         addons: {
           hasura: {
             version: 'latest',
-            config: {},
           },
         },
       },
@@ -43,7 +42,7 @@ describe('Addon Hasura', () => {
         addons: {
           hasura: {
             env: {
-              HASURA_ADMIN_SECRET: '${{secrets.HASURA_ADMIN_SECRET}}',
+              HASURA_ADMIN_SECRET: '${{secrets.admin_secret }}',
             },
           },
         },
@@ -52,7 +51,7 @@ describe('Addon Hasura', () => {
         },
       },
     }).eval({
-      HASURA_ADMIN_SECRET: 'mysecret',
+      secrets: { admin_secret: 'mysecret' },
     });
 
     expect(res).toMatchObject({
@@ -60,8 +59,12 @@ describe('Addon Hasura', () => {
       name: 'test',
       version: 1,
       deploy: {
-        env: {
-          HASURA_ADMIN_SECRET: 'mysecret',
+        addons: {
+          hasura: {
+            env: {
+              HASURA_ADMIN_SECRET: 'mysecret',
+            },
+          },
         },
         processor: [{ name: 'processor' }],
       },
