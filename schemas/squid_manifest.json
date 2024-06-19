@@ -123,6 +123,39 @@
                             },
                             "additionalProperties": false
                         },
+                        "hasura": {
+                            "type": [
+                                "object",
+                                "null"
+                            ],
+                            "properties": {
+                                "version": {
+                                    "type": "string",
+                                    "default": "latest"
+                                },
+                                "env": {
+                                    "type": "object",
+                                    "properties": {
+                                        "/^[a-zA-Z_][a-zA-Z0-9_]*$/": {
+                                            "type": "string",
+                                            "properties": {},
+                                            "required": [],
+                                            "additionalProperties": false
+                                        }
+                                    },
+                                    "additionalProperties": false,
+                                    "patternProperties": {
+                                        "^[a-zA-Z_][a-zA-Z0-9_]*$": {
+                                            "type": "string",
+                                            "properties": {},
+                                            "required": [],
+                                            "additionalProperties": false
+                                        }
+                                    }
+                                }
+                            },
+                            "additionalProperties": false
+                        },
                         "rpc": {
                             "type": "array",
                             "items": {
@@ -484,6 +517,25 @@
                                 },
                                 "autoresize_limit": {
                                     "type": "string"
+                                },
+                                "profile": {
+                                    "type": "string",
+                                    "enum": [
+                                        "small",
+                                        "medium",
+                                        "large"
+                                    ]
+                                }
+                            },
+                            "additionalProperties": false
+                        },
+                        "hasura": {
+                            "type": "object",
+                            "properties": {
+                                "replicas": {
+                                    "type": "integer",
+                                    "exclusiveMinimum": 0,
+                                    "maximum": 5
                                 },
                                 "profile": {
                                     "type": "string",
