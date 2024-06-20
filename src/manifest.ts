@@ -107,6 +107,7 @@ export class Manifest {
           addons: {
             hasura: {
               replicas: 1,
+              profile: 'small',
             },
           },
         },

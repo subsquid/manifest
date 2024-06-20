@@ -27,6 +27,7 @@ describe('Addon Hasura', () => {
         addons: {
           hasura: {
             replicas: 1,
+            profile: 'small',
           },
         },
       },
