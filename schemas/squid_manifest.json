@@ -181,6 +181,7 @@
                                     "base-goerli.http",
                                     "base-sepolia.http",
                                     "basilisk.http",
+                                    "bittensor.http",
                                     "blast-l2.http",
                                     "bridge-hub-kusama.http",
                                     "bridge-hub-polkadot.http",
