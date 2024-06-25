@@ -176,9 +176,6 @@ export const manifestSchema = Joi.object<ManifestValue>({
     api: Joi.object({
       replicas: Joi.number().integer().positive().max(5),
       profile: Joi.string().valid('small', 'medium', 'large'),
-    }).default({
-      replicas: 1,
-      profile: 'small',
     }),
   }),
 

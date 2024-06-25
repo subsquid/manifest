@@ -24,10 +24,14 @@ describe('Services', () => {
     deploy:
       processor:
         cmd: ["test"]
+    scale:
+      processor:
+        profile: medium
     `);
 
     expect(error).toEqual(undefined);
     expect(value?.deploy?.api).toEqual(undefined);
+    expect(value?.scale?.api).toEqual(undefined);
   });
 
   it('should add defaults to minimal manifest', () => {

@@ -17,6 +17,7 @@ describe('Env Evaluation', () => {
       expect(res.deploy?.env).toEqual(undefined);
       expect(res.deploy?.api).toEqual(undefined);
       expect(res.deploy?.init).toEqual(undefined);
+      expect(res.scale?.api).toEqual(undefined);
     });
 
     it('should override manifest', () => {
