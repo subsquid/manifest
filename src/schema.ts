@@ -9,6 +9,8 @@ export const DEFAULT_PACKAGE_MANAGER = 'auto';
 export const ENV_NAME_PATTERN = SECRET_NAME_PATTERN;
 export const AVAILABLE_MANIFEST_VERSIONS = ['subsquid.io/v0.1'];
 
+const NEON_VALID_CU = ['0.25', '0.5', '1', '2', '3'];
+
 export const JoiSquidName = Joi.string()
   .min(3)
   .max(30)
@@ -87,10 +89,16 @@ export const manifestSchema = Joi.object<ManifestValue>({
           max_pred_locks_per_transaction: Joi.number().integer().positive(),
         }),
       }).allow(null),
+
+      neon: Joi.object({
+        version: Joi.string().valid('16').default('16'),
+      }),
+
       hasura: Joi.object({
         version: Joi.string().default('latest'),
         env: envSchema,
       }).allow(null),
+
       rpc: Joi.array().items(
         Joi.string()
           .valid(
@@ -158,6 +166,29 @@ export const manifestSchema = Joi.object<ManifestValue>({
       hasura: Joi.object({
         replicas: Joi.number().integer().positive().max(5),
         profile: Joi.string().valid('small', 'medium', 'large'),
+      }),
+
+      neon: Joi.object({
+        autoscaling_limit_min_cu: Joi.string()
+          .valid()
+          .default(NEON_VALID_CU[0])
+          .valid(...NEON_VALID_CU),
+
+        autoscaling_limit_max_cu: Joi.number()
+          .default(NEON_VALID_CU[0])
+          .valid(...NEON_VALID_CU),
+        // TODO Validate that is equals or higher tha  autoscaling_limit_min_cu
+        // .custom((value, helper) => {
+        //   helper.schema.;
+        //
+        //   if (value.length < 8) {
+        //     return helper.error(
+        //       'autoscaling_limit_max_cu must be equals or greater than "autoscaling_limit_min_cu"',
+        //     );
+        //   }
+        //
+        //   return true;
+        // }, 'custom validation'),
       }),
 
       /** @deprecated **/

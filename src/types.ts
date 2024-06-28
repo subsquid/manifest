@@ -1,3 +1,9 @@
+export type DeepPartial<T> = T extends object
+  ? {
+      [P in keyof T]?: DeepPartial<T[P]>;
+    }
+  : T;
+
 export type ManifestProcessor = {
   name: string;
   cmd?: string[];
@@ -20,6 +26,9 @@ export type ManifestDeploymentConfig = {
         max_locks_per_transaction: number;
         max_pred_locks_per_transaction: number;
       };
+    };
+    neon?: {
+      version: string;
     };
     hasura?: {
       version?: string;
@@ -54,6 +63,10 @@ export type ManifestScaleConfig = {
     hasura?: {
       profile: 'small' | 'medium' | 'large';
       replicas?: number;
+    };
+    neon?: {
+      autoscaling_limit_min_cu: string;
+      autoscaling_limit_max_cu: string;
     };
   };
   api?: {

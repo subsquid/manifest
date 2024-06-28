@@ -4,7 +4,7 @@ import { cloneDeep, defaultsDeep, get, mapValues, set } from 'lodash';
 
 import { ManifestEvaluatingError, ManifestParsingError } from './errors';
 import { manifestSchema } from './schema';
-import { ManifestDeploymentConfig, ManifestProcessor, ManifestValue } from './types';
+import { DeepPartial, ManifestDeploymentConfig, ManifestProcessor, ManifestValue } from './types';
 
 export type ManifestParsingOptions = {
   validation?: { allowUnknown?: boolean };
@@ -16,6 +16,8 @@ export interface Manifest extends ManifestValue {
     processor: ManifestProcessor[];
   };
 }
+
+const DEFAULT_MIGRATION = ['npx', 'squid-typeorm-migration', 'apply'];
 
 export class Manifest {
   constructor(value: ManifestValue) {
@@ -44,7 +46,7 @@ export class Manifest {
     }
 
     if (this.scale) {
-      defaultsDeep(this, {
+      defaultsDeep(this, <DeepPartial<ManifestValue>>{
         scale: {
           dedicated: false,
         },
@@ -52,7 +54,7 @@ export class Manifest {
     }
 
     if (this.deploy?.api) {
-      defaultsDeep(this, {
+      defaultsDeep(this, <DeepPartial<ManifestValue>>{
         scale: {
           api: {
             replicas: 1,
@@ -73,7 +75,7 @@ export class Manifest {
     }
 
     if (this.deploy?.addons?.postgres) {
-      defaultsDeep(this, {
+      defaultsDeep(this, <DeepPartial<ManifestValue>>{
         deploy: {
           addons: {
             postgres: {
@@ -81,7 +83,7 @@ export class Manifest {
             },
           },
           init: {
-            cmd: ['npx', 'squid-typeorm-migration', 'apply'],
+            cmd: [...DEFAULT_MIGRATION],
           },
         },
         scale: {
@@ -90,6 +92,27 @@ export class Manifest {
               storage: '10Gi',
               profile: 'small',
               default_storage: !this.scale?.addons?.postgres?.storage,
+            },
+          },
+        },
+      });
+    }
+
+    if (this.deploy?.addons?.neon) {
+      defaultsDeep(this, <DeepPartial<ManifestValue>>{
+        deploy: {
+          addons: {
+            neon: {},
+          },
+          init: {
+            cmd: [...DEFAULT_MIGRATION],
+          },
+        },
+        scale: {
+          addons: {
+            neon: {
+              autoscaling_limit_min_cu: '0.25',
+              autoscaling_limit_max_cu: '0.25',
             },
           },
         },
@@ -252,7 +275,13 @@ export class Manifest {
     try {
       const raw = yaml.load(str || '{}') as Partial<ManifestValue>;
 
-      ['build', 'deploy.api', 'deploy.addons.postgres', 'deploy.addons.hasura'].map(path => {
+      [
+        'build',
+        'deploy.api',
+        'deploy.addons.postgres',
+        'deploy.addons.hasura',
+        'deploy.addons.neon',
+      ].map(path => {
         if (get(raw, path) === null) {
           set(raw, path, {});
         }
