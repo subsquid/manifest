@@ -137,7 +137,7 @@ describe('Services', () => {
     expect(error).toBeUndefined();
   });
 
-  it('should disallow && in cmd', () => {
+  it('should disallow "&&" in cmd', () => {
     const { error } = Manifest.parse(`
       manifest_version: subsquid.io/v0.1
       name: test
@@ -153,6 +153,25 @@ describe('Services', () => {
     expect(error).toEqual(
       new ManifestParsingError([
         '"deploy.api.cmd[2]" with value "&&" is invalid. Only latin letters, numbers, ".", "-", "_", "/" and ":" symbols are allowed.',
+      ]),
+    );
+  });
+
+  it('should disallow ":" in processor name', () => {
+    const { error } = Manifest.parse(`
+    manifest_version: subsquid.io/v0.1
+    name: test
+    version: 1
+    build:
+    deploy:
+      processor:
+      - name: x3:test
+        cmd: [ "node", "lib/processor" ]
+    `);
+
+    expect(error).toEqual(
+      new ManifestParsingError([
+        '"deploy.processor[0].name" with value "x3:test" is invalid. Only latin letters, numbers, "-" symbols are allowed.',
       ]),
     );
   });

@@ -46,8 +46,12 @@ const cmdSchema = Joi.string()
 
 export const processorSchema = (multi = true) => {
   let nameSchema = Joi.string()
-    .regex(/[a-z0-9]([-a-z0-9]*[a-z0-9])?/)
-    .max(63);
+    .regex(/^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/)
+    .max(63)
+    .messages({
+      'string.pattern.base':
+        '{#label} with value "{#value}" is invalid. Only latin letters, numbers, "-" symbols are allowed.',
+    });
   if (multi) {
     nameSchema = nameSchema.required();
   }
