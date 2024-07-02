@@ -9,7 +9,7 @@ export const DEFAULT_PACKAGE_MANAGER = 'auto';
 export const ENV_NAME_PATTERN = SECRET_NAME_PATTERN;
 export const AVAILABLE_MANIFEST_VERSIONS = ['subsquid.io/v0.1'];
 
-const NEON_VALID_CU = ['0.25', '0.5', '1', '2', '3'];
+const NEON_VALID_CU = ['0.25', '0.5', '1', '2', '3', '4', '8'];
 
 export const JoiSquidName = Joi.string()
   .min(3)
@@ -178,7 +178,7 @@ export const manifestSchema = Joi.object<ManifestValue>({
           .default(NEON_VALID_CU[0])
           .valid(...NEON_VALID_CU),
 
-        autoscaling_limit_max_cu: Joi.number()
+        autoscaling_limit_max_cu: Joi.string()
           .default(NEON_VALID_CU[0])
           .valid(...NEON_VALID_CU),
         // TODO Validate that is equals or higher tha  autoscaling_limit_min_cu
