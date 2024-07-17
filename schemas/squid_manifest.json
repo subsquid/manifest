@@ -123,6 +123,16 @@
                             },
                             "additionalProperties": false
                         },
+                        "neon": {
+                            "type": "object",
+                            "properties": {
+                                "version": {
+                                    "default": "16",
+                                    "const": "16"
+                                }
+                            },
+                            "additionalProperties": false
+                        },
                         "hasura": {
                             "type": [
                                 "object",
@@ -182,6 +192,7 @@
                                     "base-sepolia.http",
                                     "basilisk.http",
                                     "bittensor.http",
+                                    "bittensor-testnet.http",
                                     "blast-l2.http",
                                     "bridge-hub-kusama.http",
                                     "bridge-hub-polkadot.http",
@@ -365,7 +376,7 @@
                             "properties": {
                                 "name": {
                                     "type": "string",
-                                    "pattern": "[a-z0-9]([-a-z0-9]*[a-z0-9])?",
+                                    "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$",
                                     "maxLength": 63
                                 },
                                 "env": {
@@ -409,7 +420,7 @@
                         "properties": {
                             "name": {
                                 "type": "string",
-                                "pattern": "[a-z0-9]([-a-z0-9]*[a-z0-9])?",
+                                "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$",
                                 "maxLength": 63
                             },
                             "env": {
@@ -549,6 +560,38 @@
                             },
                             "additionalProperties": false
                         },
+                        "neon": {
+                            "type": "object",
+                            "properties": {
+                                "autoscaling_limit_min_cu": {
+                                    "type": "string",
+                                    "default": "0.25",
+                                    "enum": [
+                                        "0.25",
+                                        "0.5",
+                                        "1",
+                                        "2",
+                                        "3",
+                                        "4",
+                                        "8"
+                                    ]
+                                },
+                                "autoscaling_limit_max_cu": {
+                                    "type": "string",
+                                    "default": "0.25",
+                                    "enum": [
+                                        "0.25",
+                                        "0.5",
+                                        "1",
+                                        "2",
+                                        "3",
+                                        "4",
+                                        "8"
+                                    ]
+                                }
+                            },
+                            "additionalProperties": false
+                        },
                         "rpc": {
                             "type": "object",
                             "description": "[DEPRECATED] Please use billing settings in Cloud UI",
@@ -586,10 +629,6 @@
                 },
                 "api": {
                     "type": "object",
-                    "default": {
-                        "replicas": 1,
-                        "profile": "small"
-                    },
                     "properties": {
                         "replicas": {
                             "type": "integer",

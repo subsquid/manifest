@@ -25,6 +25,7 @@ export type NetworkName =
   | 'base-sepolia'
   | 'basilisk'
   | 'bittensor'
+  | 'bittensor-testnet'
   | 'blast-l2'
   | 'bridge-hub-kusama'
   | 'bridge-hub-polkadot'
@@ -112,6 +113,7 @@ export type RpcEndpointName =
   | 'base-sepolia.http'
   | 'basilisk.http'
   | 'bittensor.http'
+  | 'bittensor-testnet.http'
   | 'blast-l2.http'
   | 'bridge-hub-kusama.http'
   | 'bridge-hub-polkadot.http'
@@ -228,6 +230,10 @@ export const NETWORKS: {
   { network: 'base-sepolia', endpoints: [{ name: 'base-sepolia.http', type: 'evm' }] },
   { network: 'basilisk', endpoints: [{ name: 'basilisk.http', type: 'substrate' }] },
   { network: 'bittensor', endpoints: [{ name: 'bittensor.http', type: 'substrate' }] },
+  {
+    network: 'bittensor-testnet',
+    endpoints: [{ name: 'bittensor-testnet.http', type: 'substrate' }],
+  },
   { network: 'blast-l2', endpoints: [{ name: 'blast-l2.http', type: 'evm' }] },
   {
     network: 'bridge-hub-kusama',
@@ -367,6 +373,7 @@ export const RPC_ENDPOINT_NAMES: RpcEndpointName[] = [
   'base-sepolia.http',
   'basilisk.http',
   'bittensor.http',
+  'bittensor-testnet.http',
   'blast-l2.http',
   'bridge-hub-kusama.http',
   'bridge-hub-polkadot.http',
