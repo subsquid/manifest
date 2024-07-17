@@ -29,6 +29,7 @@
 
   { "name": "basilisk", "type": "substrate" },
   { "name": "bittensor", "type": "substrate" },
+  { "name": "bittensor-testnet", "type": "substrate" },
 
   { "name": "blast-l2", "type": "evm" },
 
