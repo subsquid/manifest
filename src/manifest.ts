@@ -300,10 +300,19 @@ export class Manifest {
     }
   }
 
-  static isEmpty(manifest: Partial<ManifestValue> | null | undefined) {
-    if (!manifest) return true;
+  static replace(str: string, { name }: { name?: string }) {
+    const manifest = yaml.load(str) as Partial<ManifestValue>;
 
-    return Object.keys(manifest).length === 0;
+    if (name) {
+      manifest.name = name;
+    }
+
+    return yaml.dump(manifest, {
+      lineWidth: -1,
+      styles: {
+        'tag:yaml.org,2002:null': 'empty',
+      },
+    });
   }
 }
 
