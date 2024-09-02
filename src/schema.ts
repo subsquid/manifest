@@ -11,18 +11,13 @@ export const AVAILABLE_MANIFEST_VERSIONS = ['subsquid.io/v0.1'];
 
 const NEON_VALID_CU = ['0.25', '0.5', '1', '2', '3', '4', '8'];
 
-export const JoiSquidName = Joi.string()
-  .min(3)
-  .max(30)
-  .pattern(SQUID_NAME_PATTERN)
-  .required()
-  .messages({
-    'any.required': 'The squid name is required',
-    'string.min': 'The squid name must contain at least {#limit} symbol(s)',
-    'string.max': 'The squid name must contain no more than {#limit} symbol(s)',
-    'string.pattern.base':
-      'The squid name "{#value}" is invalid. Only lowercase latin letters, numbers and the dash symbol are allowed for the squid name. The squid name cannot start with a dash',
-  });
+export const JoiSquidName = Joi.string().min(3).max(30).pattern(SQUID_NAME_PATTERN).messages({
+  'any.required': 'The squid name is required',
+  'string.min': 'The squid name must contain at least {#limit} symbol(s)',
+  'string.max': 'The squid name must contain no more than {#limit} symbol(s)',
+  'string.pattern.base':
+    'The squid name "{#value}" is invalid. Only lowercase latin letters, numbers and the dash symbol are allowed for the squid name. The squid name cannot start with a dash',
+});
 
 export const JoiSquidVersionName = Joi.number()
   .integer()
@@ -65,7 +60,7 @@ export const processorSchema = (multi = true) => {
 
 export const manifestSchema = Joi.object<ManifestValue>({
   manifest_version: Joi.string().valid(...AVAILABLE_MANIFEST_VERSIONS),
-  name: JoiSquidName,
+  name: JoiSquidName.required(),
   version: JoiSquidVersionName,
   description: Joi.string().trim(),
   queries: Joi.object(),
