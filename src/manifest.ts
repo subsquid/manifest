@@ -300,11 +300,17 @@ export class Manifest {
     }
   }
 
-  static replace(str: string, { name }: { name?: string }) {
+  static replace(str: string, { name, slot }: { name?: string; slot?: string }) {
     const manifest = yaml.load(str) as Partial<ManifestValue>;
 
     if (name) {
       manifest.name = name;
+    }
+
+    if (slot) {
+      manifest.slot = slot;
+      delete manifest.tag;
+      delete manifest.version;
     }
 
     return yaml.dump(manifest, {
