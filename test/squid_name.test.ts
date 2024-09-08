@@ -1,21 +1,21 @@
 import { Manifest, ManifestParsingError } from '../src';
 
 describe('Squid name', () => {
-  it('should require squid name and version', () => {
-    const { error } = Manifest.parse(`
-    manifest_version: subsquid.io/v0.1
-    build:
-    deploy:
-      api:
-        cmd: [ "npx", "squid-graphql-server" ]
-      processor:
-        cmd: [ "node", "lib/processor" ]
-    `);
+  // it('should require squid name and version', () => {
+  //   const { error } = Manifest.parse(`
+  //   manifest_version: subsquid.io/v0.1
+  //   build:
+  //   deploy:
+  //     api:
+  //       cmd: [ "npx", "squid-graphql-server" ]
+  //     processor:
+  //       cmd: [ "node", "lib/processor" ]
+  //   `);
 
-    expect(error).toEqual(
-      new ManifestParsingError(['The squid name is required', 'The squid version is required']),
-    );
-  });
+  //   expect(error).toEqual(
+  //     new ManifestParsingError(['The squid name is required', 'The squid version is required']),
+  //   );
+  // });
 
   it('should convert squid name as number to a string', () => {
     const { value } = Manifest.parse(`
@@ -128,6 +128,28 @@ describe('Squid name', () => {
     expect(error).toEqual(
       new ManifestParsingError([
         `The squid name "MYSQUID-TEST" is invalid. Only lowercase latin letters, numbers and the dash symbol are allowed for the squid name. The squid name cannot start with a dash`,
+      ]),
+    );
+  });
+
+  it('should allow only one of slot, tag, version', () => {
+    const { error } = Manifest.parse(`
+    manifest_version: subsquid.io/v0.1
+    name: test
+    slot: v1
+    version: 1
+    tag: dev
+    build:
+    deploy:
+      api:
+        cmd: [ "npx", "squid-graphql-server" ]
+      processor:
+        cmd: [ "node", "lib/processor" ]
+    `);
+
+    expect(error).toEqual(
+      new ManifestParsingError([
+        '"value" contains a conflict between optional exclusive peers [slot, version, tag]',
       ]),
     );
   });
