@@ -96,10 +96,15 @@ export type ManifestValue = {
    * @deprecated
    */
   manifestVersion?: string;
+  /**
+   * @deprecated
+   */
+  version?: number;
 
   manifest_version: string;
-  name: string;
-  version: number;
+  name?: string;
+  slot?: string;
+  tag?: string;
   description?: string;
   queries?: Record<string, string>;
 

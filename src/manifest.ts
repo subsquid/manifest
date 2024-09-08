@@ -142,8 +142,8 @@ export class Manifest {
     return this.name;
   }
 
-  versionName() {
-    return `v${this.version}`;
+  slotName() {
+    return this.slot || (this.version ? `v${this.version}` : undefined);
   }
 
   values(): ManifestValue {

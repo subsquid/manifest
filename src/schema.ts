@@ -4,6 +4,8 @@ import { ManifestProcessor, ManifestValue } from './types';
 
 export const SECRET_NAME_PATTERN = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
 export const SQUID_NAME_PATTERN = /^[a-z0-9][a-z0-9\-]*[a-z0-9]$/;
+export const SQUID_SLOT_PATTERN = SQUID_NAME_PATTERN;
+export const SQUID_TAG_PATTERN = SQUID_NAME_PATTERN;
 export const DEFAULT_NODE_VERSION = '20';
 export const DEFAULT_PACKAGE_MANAGER = 'auto';
 export const ENV_NAME_PATTERN = SECRET_NAME_PATTERN;
@@ -19,21 +21,31 @@ export const JoiSquidName = Joi.string().min(3).max(30).pattern(SQUID_NAME_PATTE
     'The squid name "{#value}" is invalid. Only lowercase latin letters, numbers and the dash symbol are allowed for the squid name. The squid name cannot start with a dash',
 });
 
-export const JoiSquidVersionName = Joi.number()
-  .integer()
-  .max(1000000)
-  .positive()
-  .required()
-  .messages({
-    'any.required': 'The squid version is required',
-    'number.unsafe': `The squid version "{#value}" is invalid. Must be a number from 1 to 1000000`,
-  });
+export const JoiSquidVersion = Joi.number().integer().max(1000000).positive().messages({
+  'any.required': 'The squid version is required',
+  'number.unsafe': `The squid version "{#value}" is invalid. Must be a number from 1 to 1000000`,
+});
+
+export const JoiSquidSlot = Joi.string().min(2).max(6).pattern(SQUID_SLOT_PATTERN).messages({
+  'any.required': 'The squid slot is required',
+  'string.min': 'The squid slot must contain at least {#limit} symbol(s)',
+  'string.max': 'The squid slot must contain no more than {#limit} symbol(s)',
+  'string.pattern.base':
+    'The squid slot "{#value}" is invalid. Only lowercase latin letters, numbers and the dash symbol are allowed for the squid slot. The squid slot cannot start with a dash',
+});
+
+export const JoiSquidTag = Joi.string().min(3).max(32).pattern(SQUID_TAG_PATTERN).messages({
+  'any.required': 'The squid tag is required',
+  'string.min': 'The squid tag must contain at least {#limit} symbol(s)',
+  'string.max': 'The squid tag must contain no more than {#limit} symbol(s)',
+  'string.pattern.base':
+    'The squid tag "{#value}" is invalid. Only lowercase latin letters, numbers and the dash symbol are allowed for the squid tag. The squid tag cannot start with a dash',
+});
 
 const envSchema = Joi.object().pattern(ENV_NAME_PATTERN, Joi.envString().required());
 
 const cmdSchema = Joi.string()
   .regex(/^[:\-\/\w.]+$/)
-  .required()
   .messages({
     'string.pattern.base':
       '{#label} with value "{#value}" is invalid. Only latin letters, numbers, ".", "-", "_", "/" and ":" symbols are allowed.',
@@ -54,14 +66,16 @@ export const processorSchema = (multi = true) => {
   return Joi.object<ManifestProcessor>({
     name: nameSchema,
     env: envSchema,
-    cmd: Joi.array().items(cmdSchema).min(1).required(),
+    cmd: Joi.array().items(cmdSchema.required()).min(1).required(),
   });
 };
 
 export const manifestSchema = Joi.object<ManifestValue>({
   manifest_version: Joi.string().valid(...AVAILABLE_MANIFEST_VERSIONS),
-  name: JoiSquidName.required(),
-  version: JoiSquidVersionName,
+  name: JoiSquidName,
+  version: JoiSquidVersion,
+  slot: JoiSquidSlot,
+  tag: JoiSquidTag,
   description: Joi.string().trim(),
   queries: Joi.object(),
   build: Joi.object({
@@ -72,9 +86,9 @@ export const manifestSchema = Joi.object<ManifestValue>({
       .valid('auto', 'npm', 'pnpm', 'yarn')
       .default(DEFAULT_PACKAGE_MANAGER),
     install: Joi.object({
-      cmd: Joi.array().items(cmdSchema).min(1).required(),
+      cmd: Joi.array().items(cmdSchema.required()).min(1).required(),
     }),
-    cmd: Joi.array().items(cmdSchema).min(1),
+    cmd: Joi.array().items(cmdSchema.required()).min(1),
   }).allow(null),
 
   deploy: Joi.object({
@@ -113,12 +127,12 @@ export const manifestSchema = Joi.object<ManifestValue>({
 
     init: Joi.object({
       env: envSchema,
-      cmd: Joi.array().items(cmdSchema).min(1).required(),
+      cmd: Joi.array().items(cmdSchema.required()).min(1).required(),
     }).allow(false),
 
     migrate: Joi.object({
       env: envSchema,
-      cmd: Joi.array().items(cmdSchema).min(1).required(),
+      cmd: Joi.array().items(cmdSchema.required()).min(1).required(),
     })
       .description('[DEPRECATED] Please use "deploy.init" instead')
       .allow(false),
@@ -138,7 +152,7 @@ export const manifestSchema = Joi.object<ManifestValue>({
 
     api: Joi.object({
       env: envSchema,
-      cmd: Joi.array().items(cmdSchema).min(1).required(),
+      cmd: Joi.array().items(cmdSchema.required()).min(1).required(),
     }),
 
     /** @deprecated **/
@@ -214,4 +228,4 @@ export const manifestSchema = Joi.object<ManifestValue>({
     .description('[DEPRECATED] Please use "manifest_version" instead.')
     .valid(...AVAILABLE_MANIFEST_VERSIONS)
     .meta({ deprecated: true }),
-});
+}).oxor('slot', 'version', 'tag');

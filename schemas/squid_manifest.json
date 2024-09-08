@@ -2,6 +2,62 @@
     "$id": "https://cdn.subsquid.io/schemas/squid_manifest.json",
     "$schema": "https://json-schema.org/draft-07/schema",
     "additionalProperties": false,
+    "oneOf": [
+        {
+            "required": [
+                "slot"
+            ]
+        },
+        {
+            "required": [
+                "version"
+            ]
+        },
+        {
+            "required": [
+                "tag"
+            ]
+        },
+        {
+            "not": {
+                "oneOf": [
+                    {
+                        "required": [
+                            "slot"
+                        ]
+                    },
+                    {
+                        "required": [
+                            "version"
+                        ]
+                    },
+                    {
+                        "required": [
+                            "tag"
+                        ]
+                    },
+                    {
+                        "required": [
+                            "slot",
+                            "version"
+                        ]
+                    },
+                    {
+                        "required": [
+                            "slot",
+                            "tag"
+                        ]
+                    },
+                    {
+                        "required": [
+                            "version",
+                            "tag"
+                        ]
+                    }
+                ]
+            }
+        }
+    ],
     "properties": {
         "manifest_version": {
             "const": "subsquid.io/v0.1"
@@ -16,6 +72,18 @@
             "type": "integer",
             "maximum": 1000000,
             "exclusiveMinimum": 0
+        },
+        "slot": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 6,
+            "pattern": "^[a-z0-9][a-z0-9\\-]*[a-z0-9]$"
+        },
+        "tag": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 32,
+            "pattern": "^[a-z0-9][a-z0-9\\-]*[a-z0-9]$"
         },
         "description": {
             "type": "string"
@@ -655,8 +723,6 @@
         }
     },
     "required": [
-        "name",
-        "version",
         "deploy"
     ],
     "type": "object"
