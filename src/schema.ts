@@ -34,7 +34,7 @@ export const JoiSquidSlot = Joi.string().min(2).max(6).pattern(SQUID_SLOT_PATTER
     'The squid slot "{#value}" is invalid. Only lowercase latin letters, numbers and the dash symbol are allowed for the squid slot. The squid slot cannot start with a dash',
 });
 
-export const JoiSquidTag = Joi.string().min(3).max(32).pattern(SQUID_TAG_PATTERN).messages({
+export const JoiSquidTag = Joi.string().min(2).max(32).pattern(SQUID_TAG_PATTERN).messages({
   'any.required': 'The squid tag is required',
   'string.min': 'The squid tag must contain at least {#limit} symbol(s)',
   'string.max': 'The squid tag must contain no more than {#limit} symbol(s)',
