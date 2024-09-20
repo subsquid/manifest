@@ -3,7 +3,7 @@ import { RPC_ENDPOINT_NAMES } from './rpc_networks';
 import { ManifestProcessor, ManifestValue } from './types';
 
 export const SECRET_NAME_PATTERN = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
-export const SQUID_NAME_PATTERN = /^[a-z0-9][a-z0-9\-]*[a-z0-9]$/;
+export const SQUID_NAME_PATTERN = /^[a-z0-9]([a-z0-9\-]*[a-z0-9])?$/;
 export const SQUID_SLOT_PATTERN = SQUID_NAME_PATTERN;
 export const SQUID_TAG_PATTERN = SQUID_NAME_PATTERN;
 export const DEFAULT_NODE_VERSION = '20';

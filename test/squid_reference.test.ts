@@ -1,6 +1,6 @@
 import { Manifest, ManifestParsingError } from '../src';
 
-describe('Squid name', () => {
+describe('Squid reference', () => {
   // it('should require squid name and version', () => {
   //   const { error } = Manifest.parse(`
   //   manifest_version: subsquid.io/v0.1
@@ -151,6 +151,108 @@ describe('Squid name', () => {
       new ManifestParsingError([
         '"value" contains a conflict between optional exclusive peers [slot, version, tag]',
       ]),
+    );
+  });
+
+  it('should validate name min length', () => {
+    const { error } = Manifest.parse(`
+      manifest_version: subsquid.io/v0.1
+      name: a
+      build:
+      deploy:
+        api:
+          cmd: [ "npx", "squid-graphql-server" ]
+        processor:
+          cmd: [ "node", "lib/processor" ]
+    `);
+
+    expect(error).toEqual(
+      new ManifestParsingError(['The squid name must contain at least 3 symbol(s)']),
+    );
+  });
+
+  it('should validate name max length', () => {
+    const { error } = Manifest.parse(`
+      manifest_version: subsquid.io/v0.1
+      name: aaaabbbbccccddddeeeeffffgggghhhhiiii
+      build:
+      deploy:
+        api:
+          cmd: [ "npx", "squid-graphql-server" ]
+        processor:
+          cmd: [ "node", "lib/processor" ]
+    `);
+
+    expect(error).toEqual(
+      new ManifestParsingError(['The squid name must contain no more than 30 symbol(s)']),
+    );
+  });
+
+  it('should validate slot min length', () => {
+    const { error } = Manifest.parse(`
+      manifest_version: subsquid.io/v0.1
+      slot: a
+      build:
+      deploy:
+        api:
+          cmd: [ "npx", "squid-graphql-server" ]
+        processor:
+          cmd: [ "node", "lib/processor" ]
+    `);
+
+    expect(error).toEqual(
+      new ManifestParsingError(['The squid slot must contain at least 2 symbol(s)']),
+    );
+  });
+
+  it('should validate slot max length', () => {
+    const { error } = Manifest.parse(`
+      manifest_version: subsquid.io/v0.1
+      slot: bigslotname
+      build:
+      deploy:
+        api:
+          cmd: [ "npx", "squid-graphql-server" ]
+        processor:
+          cmd: [ "node", "lib/processor" ]
+    `);
+
+    expect(error).toEqual(
+      new ManifestParsingError(['The squid slot must contain no more than 6 symbol(s)']),
+    );
+  });
+
+  it('should validate tag min length', () => {
+    const { error } = Manifest.parse(`
+      manifest_version: subsquid.io/v0.1
+      tag: a
+      build:
+      deploy:
+        api:
+          cmd: [ "npx", "squid-graphql-server" ]
+        processor:
+          cmd: [ "node", "lib/processor" ]
+    `);
+
+    expect(error).toEqual(
+      new ManifestParsingError(['The squid tag must contain at least 2 symbol(s)']),
+    );
+  });
+
+  it('should validate tag max length', () => {
+    const { error } = Manifest.parse(`
+      manifest_version: subsquid.io/v0.1
+      tag: bigtagnamebigtagnamebigtagnamebigtagnamebigtagnamebigtagname
+      build:
+      deploy:
+        api:
+          cmd: [ "npx", "squid-graphql-server" ]
+        processor:
+          cmd: [ "node", "lib/processor" ]
+    `);
+
+    expect(error).toEqual(
+      new ManifestParsingError(['The squid tag must contain no more than 32 symbol(s)']),
     );
   });
 });
