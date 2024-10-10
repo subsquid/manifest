@@ -10,11 +10,23 @@ export type ManifestProcessor = {
   env?: Record<string, string>;
 };
 
+export type ManifestDeploymentCors = {
+  enabled: boolean;
+  allow_origin?: string[];
+  allow_methods?: string[];
+  allow_headers?: string[];
+  expose_headers?: string[];
+  allow_credentials?: boolean;
+  max_age?: number;
+};
+
 export type ManifestDeploymentConfig = {
   /**
    * @deprecated
    */
   secrets?: string[];
+
+  cors?: ManifestDeploymentCors;
 
   env?: Record<string, string>;
   addons?: {

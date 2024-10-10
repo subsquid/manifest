@@ -1,6 +1,11 @@
 import { extendedJoi as Joi } from './joi';
 import { RPC_ENDPOINT_NAMES } from './rpc_networks';
-import { ManifestProcessor, ManifestValue } from './types';
+import {
+  ManifestDeploymentConfig,
+  ManifestDeploymentCors,
+  ManifestProcessor,
+  ManifestValue,
+} from './types';
 
 export const SECRET_NAME_PATTERN = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
 export const SQUID_NAME_PATTERN = /^[a-z0-9]([a-z0-9\-]*[a-z0-9])?$/;
@@ -91,7 +96,17 @@ export const manifestSchema = Joi.object<ManifestValue>({
     cmd: Joi.array().items(cmdSchema.required()).min(1),
   }).allow(null),
 
-  deploy: Joi.object({
+  deploy: Joi.object<ManifestDeploymentConfig>({
+    cors: Joi.object<ManifestDeploymentCors>({
+      enabled: Joi.boolean().default(true),
+      allow_origin: Joi.array().items(Joi.string()).single(),
+      allow_methods: Joi.array().items(Joi.string()).single(),
+      allow_headers: Joi.array().items(Joi.string()).single(),
+      expose_headers: Joi.array().items(Joi.string()).single(),
+      allow_credentials: Joi.boolean(),
+      max_age: Joi.number().integer().positive(),
+    }),
+
     addons: Joi.object({
       postgres: Joi.object({
         version: Joi.string().valid('14').default('14'),
