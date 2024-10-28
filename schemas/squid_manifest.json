@@ -66,7 +66,7 @@
             "type": "string",
             "minLength": 3,
             "maxLength": 30,
-            "pattern": "^[a-z0-9][a-z0-9\\-]*[a-z0-9]$"
+            "pattern": "^[a-z0-9]([a-z0-9\\-]*[a-z0-9])?$"
         },
         "version": {
             "type": "integer",
@@ -77,13 +77,13 @@
             "type": "string",
             "minLength": 2,
             "maxLength": 6,
-            "pattern": "^[a-z0-9][a-z0-9\\-]*[a-z0-9]$"
+            "pattern": "^[a-z0-9]([a-z0-9\\-]*[a-z0-9])?$"
         },
         "tag": {
             "type": "string",
-            "minLength": 3,
+            "minLength": 2,
             "maxLength": 32,
-            "pattern": "^[a-z0-9][a-z0-9\\-]*[a-z0-9]$"
+            "pattern": "^[a-z0-9]([a-z0-9\\-]*[a-z0-9])?$"
         },
         "description": {
             "type": "string"
@@ -153,6 +153,47 @@
         "deploy": {
             "type": "object",
             "properties": {
+                "cors": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean",
+                            "default": true
+                        },
+                        "allow_origin": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "allow_methods": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "allow_headers": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "expose_headers": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "allow_credentials": {
+                            "type": "boolean"
+                        },
+                        "max_age": {
+                            "type": "integer",
+                            "exclusiveMinimum": 0
+                        }
+                    },
+                    "additionalProperties": false
+                },
                 "addons": {
                     "type": "object",
                     "properties": {
