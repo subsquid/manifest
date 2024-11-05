@@ -1,4 +1,4 @@
-import { Manifest } from '../src';
+import { Manifest, ManifestParsingError } from '../src';
 
 describe('Addon Postgres', () => {
   it('should add defaults to postgres addon', () => {
@@ -269,5 +269,53 @@ describe('Addon Postgres', () => {
         },
       },
     });
+  });
+
+  it('should do not allow storage size values w/o units', () => {
+    const { error, value } = Manifest.parse(`
+    manifest_version: subsquid.io/v0.1
+    name: test
+    version: 1
+    build:
+    deploy:
+      addons:
+        postgres:
+      api:
+        cmd: [ "npx", "squid-graphql-server" ]
+      processor:
+        cmd: [ "node", "lib/processor" ]
+    scale:
+       addons:
+         postgres:
+           storage: 50
+    `);
+
+    expect(error).toEqual(
+      new ManifestParsingError([
+        '"scale.addons.postgres.storage" with value "50" is invalid. Size must be a number followed by unit. Valid units are "G", "Gi", "T" and "Ti"',
+      ]),
+    );
+  });
+
+  it.each(['G', 'Gi', 'T', 'Ti'])(`should allow %v unit`, unit => {
+    const { error } = Manifest.parse(`
+    manifest_version: subsquid.io/v0.1
+    name: test
+    version: 1
+    build:
+    deploy:
+      addons:
+        postgres:
+      api:
+        cmd: [ "npx", "squid-graphql-server" ]
+      processor:
+        cmd: [ "node", "lib/processor" ]
+    scale:
+       addons:
+         postgres:
+           storage: 100${unit}
+    `);
+
+    expect(error).toBeUndefined();
   });
 });

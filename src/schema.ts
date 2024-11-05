@@ -185,7 +185,12 @@ export const manifestSchema = Joi.object<ManifestValue>({
     dedicated: Joi.boolean(),
     addons: Joi.object({
       postgres: Joi.object({
-        storage: Joi.string(),
+        storage: Joi.string()
+          .regex(/^\d+[GT]i?$/)
+          .messages({
+            'string.pattern.base':
+              '{#label} with value "{#value}" is invalid. Size must be a number followed by unit. Valid units are "G", "Gi", "T" and "Ti"',
+          }),
         autoresize: Joi.bool(),
         autoresize_limit: Joi.string(),
         profile: Joi.string().valid('small', 'medium', 'large'),

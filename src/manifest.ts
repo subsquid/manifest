@@ -278,6 +278,7 @@ export class Manifest {
       [
         'build',
         'deploy.api',
+        'deploy.cors',
         'deploy.addons.postgres',
         'deploy.addons.hasura',
         'deploy.addons.neon',
