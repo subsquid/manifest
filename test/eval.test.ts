@@ -2,7 +2,7 @@ import { Manifest, ManifestEvaluatingError } from '../src';
 
 describe('Env Evaluation', () => {
   describe('eval', () => {
-    it('should not add an objects if it doesnt exist in the source manifest', () => {
+    it('should not add an objects if it does not exist in the source manifest', () => {
       const res = new Manifest({
         manifest_version: 'subsquid.io/v0.1',
         name: 'test',
@@ -158,7 +158,7 @@ describe('Env Evaluation', () => {
         }),
       ).toThrow(
         new ManifestEvaluatingError([
-          'Manifest env variable "deploy.env.baz" can not be mapped for "${{baz}}" expression: "baz" is not found in the context',
+          'Manifest env variable "deploy.env.baz" can not be mapped for "${{baz}}" expression: "baz" is not defined',
         ]),
       );
     });

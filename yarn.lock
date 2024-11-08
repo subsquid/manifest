@@ -682,11 +682,6 @@
   dependencies:
     "@sinonjs/commons" "^3.0.0"
 
-"@subsquid/manifest-expr@^0.0.1":
-  version "0.0.1"
-  resolved "https://registry.yarnpkg.com/@subsquid/manifest-expr/-/manifest-expr-0.0.1.tgz#da8078dcdc8e765b6b82cca1a0db9dbf5bff0297"
-  integrity sha512-QKrgq+BPVX03SPm/kxXr3kDRDFn+ddBAuA9ysvae3PBA0jlj5DUSFxNjIoGZoy+RBwu82t4T0Xt4oTXR8e0OBw==
-
 "@tsconfig/node10@^1.0.7":
   version "1.0.9"
   resolved "https://registry.yarnpkg.com/@tsconfig/node10/-/node10-1.0.9.tgz#df4907fc07a886922637b15e02d4cebc4c0021b2"

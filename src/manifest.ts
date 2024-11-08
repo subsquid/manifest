@@ -1,8 +1,8 @@
-import { Expression, Parser } from '@subsquid/manifest-expr';
 import yaml from 'js-yaml';
 import { cloneDeep, defaultsDeep, get, mapValues, set } from 'lodash';
 
 import { ManifestEvaluatingError, ManifestParsingError } from './errors';
+import { Expression, Parser } from './expression';
 import { manifestSchema } from './schema';
 import { DeepPartial, ManifestDeploymentConfig, ManifestProcessor, ManifestValue } from './types';
 
