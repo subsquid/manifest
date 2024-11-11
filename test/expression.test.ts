@@ -13,6 +13,33 @@ describe('Expression', () => {
     expect(value).toEqual('foo');
   });
 
+  it('should resolve identifier 2', () => {
+    const value = parser.parse('${{foo-bar}}').eval({ ['foo-bar']: 'foo-bar' });
+    expect(value).toEqual('foo-bar');
+  });
+
+  it('should resolve identifier 3', () => {
+    const value = parser.parse('${{foo_bar}}').eval({ ['foo_bar']: 'foo_bar' });
+    expect(value).toEqual('foo_bar');
+  });
+
+  it('should resolve identifier 4', () => {
+    const value = parser.parse('${{foo1337}}').eval({ ['foo1337']: 'foo1337' });
+    expect(value).toEqual('foo1337');
+  });
+
+  it('should throw on invalid identifier', () => {
+    expect(() => parser.parse('${{foo-}}').eval({})).toThrow(
+      new EvaluationError("Unexpected '-' [0,6]"),
+    );
+  });
+
+  it('should throw on invalid identifier 2', () => {
+    expect(() => parser.parse('${{9foo}}').eval({})).toThrow(
+      new EvaluationError("Unexpected '9' [0,3]"),
+    );
+  });
+
   it('should throw on not defined identifier', () => {
     expect(() => parser.parse('${{foo}}').eval({})).toThrow(
       new EvaluationError('"foo" is not defined'),

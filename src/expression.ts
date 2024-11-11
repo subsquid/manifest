@@ -2,6 +2,11 @@ import assert from 'assert';
 
 export const EXPR_PATTERN = /(\${{[^}]*}})/;
 
+const nums = new Set('0123456789'.split(''));
+const alpha = new Set('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'.split(''));
+const alphaNum = new Set([...nums, ...alpha]);
+const identifiers = new Set([...alphaNum, '_', '-']);
+
 export class Parser {
   constructor() {}
 
@@ -69,11 +74,10 @@ export class Tokenizer {
 
   id() {
     const start = this.pos;
-    while (
-      this.str[this.pos] &&
-      (/[a-zA-Z_$]/.test(this.str[this.pos]) ||
-        (this.pos > start && /[0-9]/.test(this.str[this.pos])))
-    ) {
+    while (identifiers.has(this.str[this.pos])) {
+      if (this.pos === start && nums.has(this.str[this.pos])) break;
+      if (this.str[this.pos] === '-' && !alphaNum.has(this.str[this.pos + 1])) break;
+
       this.pos++;
     }
 
