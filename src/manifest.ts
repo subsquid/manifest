@@ -181,7 +181,7 @@ export class Manifest {
     ];
   }
 
-  eval(context: Record<string, unknown>): ManifestValue {
+  eval(context: Record<string, unknown>): Manifest {
     const raw = this.toObject();
     const paths = this.getAllEnvPaths();
     const parser = new Parser();
@@ -217,7 +217,7 @@ export class Manifest {
       throw new ManifestEvaluatingError(errors);
     }
 
-    return raw;
+    return new Manifest(raw);
   }
 
   variables(prefix: string[] = []): string[] {
@@ -327,11 +327,11 @@ export class Manifest {
   }
 }
 
-function getError(path: string, expression: string | undefined, error: any) {
+function getError(path: string, expression: string | undefined, error: unknown) {
   const exprIn = expression ? ` for "${expression}" expression` : '';
 
   return [
     `Manifest env variable "${path}" can not be mapped${exprIn}`,
-    error instanceof Error ? error.message : error.toString(),
+    error instanceof Error ? error.message : String(error),
   ].join(': ');
 }
