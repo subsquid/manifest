@@ -193,7 +193,7 @@ export const manifestSchema = Joi.object<ManifestValue>({
           }),
         autoresize: Joi.bool(),
         autoresize_limit: Joi.string(),
-        profile: Joi.string().valid('small', 'medium', 'large'),
+        profile: Joi.string().valid('small', 'medium', 'large', 'xlarge', '2xlarge'),
       }),
 
       hasura: Joi.object({

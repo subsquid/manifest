@@ -631,7 +631,8 @@
                             "type": "object",
                             "properties": {
                                 "storage": {
-                                    "type": "string"
+                                    "type": "string",
+                                    "pattern": "^\\d+[GT]i?$"
                                 },
                                 "autoresize": {
                                     "type": "boolean"
@@ -644,7 +645,9 @@
                                     "enum": [
                                         "small",
                                         "medium",
-                                        "large"
+                                        "large",
+                                        "xlarge",
+                                        "2xlarge"
                                     ]
                                 }
                             },
