@@ -69,7 +69,7 @@ export type ManifestScaleConfig = {
       storage?: string;
       autoresize?: boolean;
       autoresize_limit?: string;
-      profile: 'small' | 'medium' | 'large';
+      profile: 'small' | 'medium' | 'large' | 'xlarge' | '2xlarge';
       default_storage?: boolean;
     };
     hasura?: {
