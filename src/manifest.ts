@@ -45,97 +45,7 @@ export class Manifest {
       delete this.deploy.migrate;
     }
 
-    if (this.scale) {
-      defaultsDeep(this, <DeepPartial<ManifestValue>>{
-        scale: {
-          dedicated: true,
-        },
-      });
-    }
-
-    if (this.deploy?.api) {
-      defaultsDeep(this, <DeepPartial<ManifestValue>>{
-        scale: {
-          api: {
-            replicas: 1,
-            profile: 'small',
-          },
-        },
-      });
-    }
-
-    if (this.deploy?.processor) {
-      defaultsDeep(this, {
-        scale: {
-          processor: {
-            profile: 'small',
-          },
-        },
-      });
-    }
-
-    if (this.deploy?.addons?.postgres) {
-      defaultsDeep(this, <DeepPartial<ManifestValue>>{
-        deploy: {
-          addons: {
-            postgres: {
-              config: {},
-            },
-          },
-          init: {
-            cmd: [...DEFAULT_MIGRATION],
-          },
-        },
-        scale: {
-          addons: {
-            postgres: {
-              storage: '10Gi',
-              profile: 'small',
-              default_storage: !this.scale?.addons?.postgres?.storage,
-            },
-          },
-        },
-      });
-    }
-
-    if (this.deploy?.addons?.neon) {
-      defaultsDeep(this, <DeepPartial<ManifestValue>>{
-        deploy: {
-          addons: {
-            neon: {},
-          },
-          init: {
-            cmd: [...DEFAULT_MIGRATION],
-          },
-        },
-        scale: {
-          addons: {
-            neon: {
-              autoscaling_limit_min_cu: '0.25',
-              autoscaling_limit_max_cu: '0.25',
-            },
-          },
-        },
-      });
-    }
-
-    if (this.deploy?.addons?.hasura) {
-      defaultsDeep(this, {
-        deploy: {
-          addons: {
-            hasura: {},
-          },
-        },
-        scale: {
-          addons: {
-            hasura: {
-              replicas: 1,
-              profile: 'small',
-            },
-          },
-        },
-      });
-    }
+    Manifest.setDefaults(this);
   }
 
   squidName() {
@@ -324,6 +234,100 @@ export class Manifest {
         'tag:yaml.org,2002:null': 'empty',
       },
     });
+  }
+
+  static setDefaults(manifest: Partial<ManifestValue>) {
+    if (manifest.scale) {
+      defaultsDeep(manifest, <DeepPartial<ManifestValue>>{
+        scale: {
+          dedicated: true,
+        },
+      });
+    }
+
+    if (manifest.deploy?.api) {
+      defaultsDeep(manifest, <DeepPartial<ManifestValue>>{
+        scale: {
+          api: {
+            replicas: 1,
+            profile: 'small',
+          },
+        },
+      });
+    }
+
+    if (manifest.deploy?.processor) {
+      defaultsDeep(manifest, {
+        scale: {
+          processor: {
+            profile: 'small',
+          },
+        },
+      });
+    }
+
+    if (manifest.deploy?.addons?.postgres) {
+      defaultsDeep(manifest, <DeepPartial<ManifestValue>>{
+        deploy: {
+          addons: {
+            postgres: {
+              config: {},
+            },
+          },
+          init: {
+            cmd: [...DEFAULT_MIGRATION],
+          },
+        },
+        scale: {
+          addons: {
+            postgres: {
+              storage: '10Gi',
+              profile: 'small',
+              default_storage: !manifest.scale?.addons?.postgres?.storage,
+            },
+          },
+        },
+      });
+    }
+
+    if (manifest.deploy?.addons?.neon) {
+      defaultsDeep(manifest, <DeepPartial<ManifestValue>>{
+        deploy: {
+          addons: {
+            neon: {},
+          },
+          init: {
+            cmd: [...DEFAULT_MIGRATION],
+          },
+        },
+        scale: {
+          addons: {
+            neon: {
+              autoscaling_limit_min_cu: '0.25',
+              autoscaling_limit_max_cu: '0.25',
+            },
+          },
+        },
+      });
+    }
+
+    if (manifest.deploy?.addons?.hasura) {
+      defaultsDeep(manifest, {
+        deploy: {
+          addons: {
+            hasura: {},
+          },
+        },
+        scale: {
+          addons: {
+            hasura: {
+              replicas: 1,
+              profile: 'small',
+            },
+          },
+        },
+      });
+    }
   }
 }
 
