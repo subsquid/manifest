@@ -42,9 +42,6 @@ describe('Addon Neon', () => {
             autoscaling_limit_max_cu: '0.25',
           },
         },
-        processor: {
-          profile: 'small',
-        },
       },
     });
   });

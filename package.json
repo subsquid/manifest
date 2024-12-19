@@ -12,7 +12,7 @@
     "lint": "eslint --fix src/**/*.ts",
     "typecheck": "tsc --noEmit",
     "build": "rm -rf dist && tsc -p tsconfig.build.json",
-    "test": "jest --runInBand --testRegex=.test.ts$",
+    "test": "jest --runInBand --testRegex=.test.ts",
     "generate": "ts-node scripts/generate-rpc-endpoints.ts && eslint --fix src/rpc_networks.ts && ts-node scripts/generate-json-schema.ts"
   },
   "main": "./dist/index.js",

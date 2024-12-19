@@ -44,8 +44,10 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-${{ env.cache-name }}-yarn-
 
-      - name: Install
-        run: yarn install
+      - name: Install Yarn
+        run: |
+          corepack enable
+          yarn install
 
       - name: Test
         run: yarn test

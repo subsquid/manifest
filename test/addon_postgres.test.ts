@@ -115,7 +115,7 @@ describe('Addon Postgres', () => {
         },
       },
       scale: {
-        dedicated: false,
+        dedicated: true,
         addons: {
           postgres: {
             storage: '50Gi',
