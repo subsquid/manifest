@@ -48,7 +48,7 @@ export class Manifest {
     if (this.scale) {
       defaultsDeep(this, <DeepPartial<ManifestValue>>{
         scale: {
-          dedicated: false,
+          dedicated: true,
         },
       });
     }
