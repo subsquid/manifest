@@ -86,6 +86,7 @@ export type NetworkName =
   | 'shibuya'
   | 'shiden'
   | 'solana'
+  | 'sonic-mainnet'
   | 'turing'
   | 'zeitgeist'
   | 'zksync'
@@ -178,6 +179,7 @@ export type RpcEndpointName =
   | 'shiden.http'
   | 'shiden-substrate.http'
   | 'solana.http'
+  | 'sonic-mainnet.http'
   | 'turing.http'
   | 'zeitgeist.http'
   | 'zksync.http'
@@ -345,6 +347,7 @@ export const NETWORKS: {
     ],
   },
   { network: 'solana', endpoints: [{ name: 'solana.http', type: 'solana' }] },
+  { network: 'sonic-mainnet', endpoints: [{ name: 'sonic-mainnet.http', type: 'evm' }] },
   { network: 'turing', endpoints: [{ name: 'turing.http', type: 'substrate' }] },
   { network: 'zeitgeist', endpoints: [{ name: 'zeitgeist.http', type: 'substrate' }] },
   { network: 'zksync', endpoints: [{ name: 'zksync.http', type: 'evm' }] },
@@ -438,6 +441,7 @@ export const RPC_ENDPOINT_NAMES: RpcEndpointName[] = [
   'shiden.http',
   'shiden-substrate.http',
   'solana.http',
+  'sonic-mainnet.http',
   'turing.http',
   'zeitgeist.http',
   'zksync.http',

@@ -366,6 +366,7 @@
                                     "shiden.http",
                                     "shiden-substrate.http",
                                     "solana.http",
+                                    "sonic-mainnet.http",
                                     "turing.http",
                                     "zeitgeist.http",
                                     "zksync.http",

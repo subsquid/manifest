@@ -135,6 +135,8 @@
 
   { "name": "solana", "type": "solana" },
 
+  { "name": "sonic-mainnet", "type": "evm" },
+
   { "name": "turing", "type": "substrate" },
 
   { "name": "zeitgeist", "type": "substrate" },
