@@ -300,6 +300,7 @@
                                     "base-goerli.http",
                                     "base-sepolia.http",
                                     "basilisk.http",
+                                    "berachain.http",
                                     "bittensor.http",
                                     "bittensor-testnet.http",
                                     "blast-l2.http",
@@ -368,6 +369,8 @@
                                     "solana.http",
                                     "sonic-mainnet.http",
                                     "turing.http",
+                                    "unichain.http",
+                                    "unichain-sepolia.http",
                                     "zeitgeist.http",
                                     "zksync.http",
                                     "zksync-sepolia.http"
