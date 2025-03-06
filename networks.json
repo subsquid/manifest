@@ -28,6 +28,9 @@
   { "name": "base-sepolia", "type": "evm" },
 
   { "name": "basilisk", "type": "substrate" },
+
+  { "name": "berachain", "type": "evm" },
+
   { "name": "bittensor", "type": "substrate" },
   { "name": "bittensor-testnet", "type": "substrate" },
 
@@ -135,7 +138,12 @@
 
   { "name": "solana", "type": "solana" },
 
+  { "name": "sonic-mainnet", "type": "evm" },
+
   { "name": "turing", "type": "substrate" },
+
+  { "name": "unichain", "type": "evm" },
+  { "name": "unichain-sepolia", "type": "evm" },
 
   { "name": "zeitgeist", "type": "substrate" },
 

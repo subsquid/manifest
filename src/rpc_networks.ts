@@ -24,6 +24,7 @@ export type NetworkName =
   | 'base-goerli'
   | 'base-sepolia'
   | 'basilisk'
+  | 'berachain'
   | 'bittensor'
   | 'bittensor-testnet'
   | 'blast-l2'
@@ -86,7 +87,10 @@ export type NetworkName =
   | 'shibuya'
   | 'shiden'
   | 'solana'
+  | 'sonic-mainnet'
   | 'turing'
+  | 'unichain'
+  | 'unichain-sepolia'
   | 'zeitgeist'
   | 'zksync'
   | 'zksync-sepolia';
@@ -112,6 +116,7 @@ export type RpcEndpointName =
   | 'base-goerli.http'
   | 'base-sepolia.http'
   | 'basilisk.http'
+  | 'berachain.http'
   | 'bittensor.http'
   | 'bittensor-testnet.http'
   | 'blast-l2.http'
@@ -178,7 +183,10 @@ export type RpcEndpointName =
   | 'shiden.http'
   | 'shiden-substrate.http'
   | 'solana.http'
+  | 'sonic-mainnet.http'
   | 'turing.http'
+  | 'unichain.http'
+  | 'unichain-sepolia.http'
   | 'zeitgeist.http'
   | 'zksync.http'
   | 'zksync-sepolia.http';
@@ -229,6 +237,7 @@ export const NETWORKS: {
   { network: 'base-goerli', endpoints: [{ name: 'base-goerli.http', type: 'evm' }] },
   { network: 'base-sepolia', endpoints: [{ name: 'base-sepolia.http', type: 'evm' }] },
   { network: 'basilisk', endpoints: [{ name: 'basilisk.http', type: 'substrate' }] },
+  { network: 'berachain', endpoints: [{ name: 'berachain.http', type: 'evm' }] },
   { network: 'bittensor', endpoints: [{ name: 'bittensor.http', type: 'substrate' }] },
   {
     network: 'bittensor-testnet',
@@ -345,7 +354,10 @@ export const NETWORKS: {
     ],
   },
   { network: 'solana', endpoints: [{ name: 'solana.http', type: 'solana' }] },
+  { network: 'sonic-mainnet', endpoints: [{ name: 'sonic-mainnet.http', type: 'evm' }] },
   { network: 'turing', endpoints: [{ name: 'turing.http', type: 'substrate' }] },
+  { network: 'unichain', endpoints: [{ name: 'unichain.http', type: 'evm' }] },
+  { network: 'unichain-sepolia', endpoints: [{ name: 'unichain-sepolia.http', type: 'evm' }] },
   { network: 'zeitgeist', endpoints: [{ name: 'zeitgeist.http', type: 'substrate' }] },
   { network: 'zksync', endpoints: [{ name: 'zksync.http', type: 'evm' }] },
   { network: 'zksync-sepolia', endpoints: [{ name: 'zksync-sepolia.http', type: 'evm' }] },
@@ -372,6 +384,7 @@ export const RPC_ENDPOINT_NAMES: RpcEndpointName[] = [
   'base-goerli.http',
   'base-sepolia.http',
   'basilisk.http',
+  'berachain.http',
   'bittensor.http',
   'bittensor-testnet.http',
   'blast-l2.http',
@@ -438,7 +451,10 @@ export const RPC_ENDPOINT_NAMES: RpcEndpointName[] = [
   'shiden.http',
   'shiden-substrate.http',
   'solana.http',
+  'sonic-mainnet.http',
   'turing.http',
+  'unichain.http',
+  'unichain-sepolia.http',
   'zeitgeist.http',
   'zksync.http',
   'zksync-sepolia.http',
