@@ -83,10 +83,10 @@ export type ManifestScaleConfig = {
   };
   api?: {
     replicas?: number;
-    profile: 'small' | 'medium' | 'large';
+    profile: 'small' | 'medium' | 'large' | 'xlarge' | '2xlarge';
   };
   processor?: {
-    profile: 'small' | 'medium' | 'large';
+    profile: 'small' | 'medium' | 'large' | 'xlarge' | '2xlarge';
   };
 };
 

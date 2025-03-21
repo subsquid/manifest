@@ -235,11 +235,11 @@ export const manifestSchema = Joi.object<ManifestValue>({
         }),
     }),
     processor: Joi.object({
-      profile: Joi.string().valid('small', 'medium', 'large'),
+      profile: Joi.string().valid('small', 'medium', 'large', 'xlarge', '2xlarge'),
     }).default({ profile: 'small' }),
     api: Joi.object({
       replicas: Joi.number().integer().positive().max(5),
-      profile: Joi.string().valid('small', 'medium', 'large'),
+      profile: Joi.string().valid('small', 'medium', 'large', 'xlarge', '2xlarge'),
     }),
   }),
 
