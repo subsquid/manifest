@@ -122,10 +122,8 @@ export class Token {
         assert(typeof n0 === 'string');
 
         const path = [...ctxPath, n0];
-        const value = !!ctx?.hasOwnProperty(n0) ? ctx[n0] : undefined;
-
-        if (value) {
-          return { value, path };
+        if (!!ctx?.hasOwnProperty(n0)) {
+          return { value: ctx[n0], path };
         } else {
           throw new EvaluationError(`"${path.join('.')}" is not defined`);
         }
@@ -179,7 +177,8 @@ export class Expression {
       if (typeof token === 'string') {
         res.push(token);
       } else {
-        res.push(token.eval(context, []).value?.toString() ?? '');
+        const { value } = token.eval(context, []);
+        res.push(value === undefined || value === null ? '' : String(value));
       }
     }
 
