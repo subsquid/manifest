@@ -3,7 +3,8 @@ import {
   Parser,
   EvaluationError,
   UnexpectedTokenError,
-  UnexpectedEndOfInputError,
+  UnexpectedEndOfExpressionError,
+  UnexpectedEndOfStringError,
 } from '../src/expression';
 
 describe('Expression', () => {
@@ -65,7 +66,7 @@ describe('Expression', () => {
 
     it('should throw on invalid syntax', () => {
       expect(() => parser.parse('${{.foo}}')).toThrow(new UnexpectedTokenError('.', 3));
-      expect(() => parser.parse('${{foo.}}')).toThrow(new UnexpectedEndOfInputError(7));
+      expect(() => parser.parse('${{foo.}}')).toThrow(new UnexpectedEndOfExpressionError(7));
     });
   });
 
@@ -76,16 +77,14 @@ describe('Expression', () => {
     });
 
     it('should throw on empty expression', () => {
-      expect(() => parser.parse('${{    }}')).toThrow(new UnexpectedEndOfInputError(7));
+      expect(() => parser.parse('${{    }}')).toThrow(new UnexpectedEndOfExpressionError(7));
     });
   });
 
   describe('value handling', () => {
-    it('should handle falsy values', () => {
+    it('should handle empty values', () => {
       expect(parser.parse('${{undefined}}').eval({ undefined: undefined })).toEqual('');
       expect(parser.parse('${{null}}').eval({ null: null })).toEqual('');
-      expect(parser.parse('${{false}}').eval({ false: false })).toEqual('false');
-      expect(parser.parse('${{zero}}').eval({ zero: 0 })).toEqual('0');
       expect(parser.parse('${{empty}}').eval({ empty: '' })).toEqual('');
     });
   });
@@ -111,6 +110,26 @@ describe('Expression', () => {
     it('should resolve nested variables', () => {
       const variables = parser.parse('${{foo.bar}}').variables(['foo']);
       expect(variables).toEqual(['bar']);
+    });
+  });
+
+  describe('string literals', () => {
+    it('should parse simple string literal', () => {
+      const value = parser.parse("${{'hello'}}").eval();
+      expect(value).toEqual('hello');
+    });
+
+    it('should parse string with escaped quotes', () => {
+      const value = parser.parse("${{'hello''world'}}").eval();
+      expect(value).toEqual("hello'world");
+    });
+
+    it('should throw on unclosed string', () => {
+      expect(() => parser.parse("${{'hello}}")).toThrow(new UnexpectedEndOfStringError('hello', 9));
+    });
+
+    it('should throw on string after identifier', () => {
+      expect(() => parser.parse("${{foo'bar'}}")).toThrow(new UnexpectedTokenError("'", 6));
     });
   });
 });

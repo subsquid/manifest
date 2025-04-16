@@ -19,9 +19,15 @@ export class UnexpectedTokenError extends ParsingError {
   }
 }
 
-export class UnexpectedEndOfInputError extends ParsingError {
+export class UnexpectedEndOfExpressionError extends ParsingError {
   constructor(pos: number) {
-    super('Unexpected end of input', pos);
+    super('Unexpected end of expression', pos);
+  }
+}
+
+export class UnexpectedEndOfStringError extends ParsingError {
+  constructor(str: string, pos: number) {
+    super("Unexpected end of string: '${str}", pos);
   }
 }
 
@@ -68,6 +74,12 @@ export class Tokenizer {
       switch (this.str[this.pos]) {
         case undefined:
           break;
+        case "'":
+          if (token) {
+            throw new UnexpectedTokenError("'", this.getPos());
+          }
+          token = new Token(TokenType.StringLiteral, [this.string()]);
+          break;
         case '.':
           if (token) {
             this.pos++;
@@ -88,10 +100,39 @@ export class Tokenizer {
     }
 
     if (!token) {
-      throw new UnexpectedEndOfInputError(this.getPos());
+      throw new UnexpectedEndOfExpressionError(this.getPos());
     }
 
     return token;
+  }
+
+  string(): string {
+    this.pos++; // Skip opening quote
+    let result = '';
+    let escaped = false;
+
+    while (this.str[this.pos]) {
+      if (escaped) {
+        if (this.str[this.pos] === "'") {
+          result += "'";
+        } else {
+          result += this.str[this.pos];
+        }
+        escaped = false;
+      } else if (this.str[this.pos] === "'") {
+        if (this.str[this.pos + 1] === "'") {
+          escaped = true;
+        } else {
+          this.pos++; // Skip closing quote
+          return result;
+        }
+      } else {
+        result += this.str[this.pos];
+      }
+      this.pos++;
+    }
+
+    throw new UnexpectedEndOfStringError(result, this.getPos());
   }
 
   id() {
@@ -107,13 +148,14 @@ export class Tokenizer {
   }
 
   error(msg: string) {
-    return new UnexpectedEndOfInputError(this.getPos());
+    return new UnexpectedEndOfExpressionError(this.getPos());
   }
 }
 
 export enum TokenType {
   Identifier,
   MemberAccess,
+  StringLiteral,
 }
 
 export class Token {
@@ -143,6 +185,11 @@ export class Token {
         } else {
           throw new EvaluationError(`"${path.join('.')}" is not defined`);
         }
+      }
+      case TokenType.StringLiteral: {
+        const [n0] = this.nodes;
+        assert(typeof n0 === 'string');
+        return { value: n0, path: ctxPath };
       }
     }
   }

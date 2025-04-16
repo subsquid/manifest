@@ -1,4 +1,5 @@
 import { Manifest, ManifestEvaluatingError } from '../src';
+import { UnexpectedEndOfExpressionError } from '../src/expression';
 
 describe('Env Evaluation', () => {
   describe('eval', () => {
@@ -101,7 +102,7 @@ describe('Env Evaluation', () => {
         }),
       ).toThrow(
         new ManifestEvaluatingError([
-          'Manifest env variable "deploy.env.foo" can not be mapped for "${{foo.}}" expression: Unexpected end of input [7]',
+          `Manifest env variable "deploy.env.foo" can not be mapped for "\${{foo.}}" expression: ${new UnexpectedEndOfExpressionError(7).message}`,
         ]),
       );
     });
@@ -130,7 +131,7 @@ describe('Env Evaluation', () => {
         }),
       ).toThrow(
         new ManifestEvaluatingError([
-          'Manifest env variable "deploy.processor.[0].env.foo" can not be mapped for "${{foo.}}" expression: Unexpected end of input [7]',
+          `Manifest env variable "deploy.processor.[0].env.foo" can not be mapped for "\${{foo.}}" expression: ${new UnexpectedEndOfExpressionError(7).message}`,
         ]),
       );
     });
