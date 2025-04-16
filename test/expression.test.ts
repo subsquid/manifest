@@ -269,4 +269,122 @@ describe('Expression', () => {
       expect(parser.parse("${{foo || 'default'}}").eval({ foo: null })).toEqual('default');
     });
   });
+
+  describe('logical AND operator', () => {
+    it('should return first falsy value or last value', () => {
+      expect(parser.parse('${{foo && bar}}').eval({ foo: 'first', bar: 'second' })).toEqual(
+        'second',
+      );
+      expect(parser.parse('${{foo && bar}}').eval({ foo: null, bar: 'second' })).toEqual('');
+      expect(parser.parse('${{foo && bar}}').eval({ foo: undefined, bar: 'second' })).toEqual('');
+      expect(parser.parse('${{foo && bar}}').eval({ foo: '', bar: 'second' })).toEqual('');
+      expect(parser.parse('${{foo && bar}}').eval({ foo: 0, bar: 'second' })).toEqual('0');
+      expect(parser.parse('${{foo && bar}}').eval({ foo: false, bar: 'second' })).toEqual('false');
+    });
+
+    it('should handle nested expressions', () => {
+      expect(
+        parser.parse('${{foo.bar && baz.qux}}').eval({
+          foo: { bar: 'first' },
+          baz: { qux: 'second' },
+        }),
+      ).toEqual('second');
+
+      expect(
+        parser.parse('${{foo.bar && baz.qux}}').eval({
+          foo: { bar: null },
+          baz: { qux: 'second' },
+        }),
+      ).toEqual('');
+    });
+
+    it('should handle multiple AND operators', () => {
+      expect(
+        parser.parse('${{foo && bar && baz}}').eval({
+          foo: 'first',
+          bar: 'second',
+          baz: 'third',
+        }),
+      ).toEqual('third');
+
+      expect(
+        parser.parse('${{foo && bar && baz}}').eval({
+          foo: null,
+          bar: 'second',
+          baz: 'third',
+        }),
+      ).toEqual('');
+
+      expect(
+        parser.parse('${{foo && bar && baz}}').eval({
+          foo: 'first',
+          bar: null,
+          baz: 'third',
+        }),
+      ).toEqual('');
+
+      expect(
+        parser.parse('${{foo && bar && baz}}').eval({
+          foo: 'first',
+          bar: 'second',
+          baz: null,
+        }),
+      ).toEqual('');
+    });
+
+    it('should handle string literals', () => {
+      expect(parser.parse("${{foo && 'default'}}").eval({ foo: 'value' })).toEqual('default');
+      expect(parser.parse("${{foo && 'default'}}").eval({ foo: null })).toEqual('');
+    });
+
+    it('should reject invalid AND operator usage', () => {
+      expect(() => parser.parse('${{&& foo}}')).toThrow(new UnexpectedTokenError('&&', 3));
+      expect(() => parser.parse('${{foo &&}}')).toThrow(new UnexpectedEndOfExpressionError(9));
+      expect(() => parser.parse('${{& foo}}')).toThrow(new UnexpectedTokenError('&', 3));
+    });
+  });
+
+  describe('combined logical operators', () => {
+    it('should handle OR and AND operators together', () => {
+      expect(
+        parser.parse('${{foo && bar || baz}}').eval({
+          foo: true,
+          bar: 'second',
+          baz: 'third',
+        }),
+      ).toEqual('second');
+
+      expect(
+        parser.parse('${{foo && bar || baz}}').eval({
+          foo: false,
+          bar: 'second',
+          baz: 'third',
+        }),
+      ).toEqual('third');
+
+      expect(
+        parser.parse('${{foo || bar && baz}}').eval({
+          foo: 'first',
+          bar: 'second',
+          baz: 'third',
+        }),
+      ).toEqual('first');
+
+      expect(
+        parser.parse('${{foo || bar && baz}}').eval({
+          foo: null,
+          bar: 'second',
+          baz: 'third',
+        }),
+      ).toEqual('third');
+
+      expect(
+        parser.parse('${{foo || bar && baz}}').eval({
+          foo: null,
+          bar: null,
+          baz: 'third',
+        }),
+      ).toEqual('');
+    });
+  });
 });

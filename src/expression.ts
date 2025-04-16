@@ -114,6 +114,17 @@ export class Tokenizer {
           this.pos += 2;
           token = new Token(TokenType.Or, [token, this.tokenize(TokenType.Or)]);
           break;
+        case '&':
+          if (this.str[this.pos + 1] !== '&') {
+            throw new UnexpectedTokenError('&', this.getPos());
+          }
+          if (!token) {
+            throw new UnexpectedTokenError('&&', this.getPos());
+          }
+          if (priority > TokenType.And) return token;
+          this.pos += 2;
+          token = new Token(TokenType.And, [token, this.tokenize(TokenType.And)]);
+          break;
         default:
           const value = this.id();
           if (!value) {
@@ -126,7 +137,6 @@ export class Tokenizer {
             throw new UnexpectedTokenError('-', this.getPos() + value.length - 1);
           }
           token = new Token(TokenType.Identifier, [value]);
-
           break;
       }
     }
@@ -186,6 +196,7 @@ export class Tokenizer {
 
 export enum TokenType {
   Or,
+  And,
   MemberAccess,
   StringLiteral,
   Identifier,
@@ -206,6 +217,18 @@ export class Token {
 
         const leftResult = left.eval(ctx, [...ctxPath]);
         if (isTrue(leftResult.value)) {
+          return leftResult;
+        }
+
+        return right.eval(ctx, [...ctxPath]);
+      }
+      case TokenType.And: {
+        const [left, right] = this.nodes;
+        assert(left instanceof Token);
+        assert(right instanceof Token);
+
+        const leftResult = left.eval(ctx, [...ctxPath]);
+        if (!isTrue(leftResult.value)) {
           return leftResult;
         }
 
@@ -250,6 +273,15 @@ export class Token {
 
     switch (this.type) {
       case TokenType.Or: {
+        const [left, right] = this.nodes;
+        assert(left instanceof Token);
+        assert(right instanceof Token);
+
+        left.variables(path).forEach(v => res.add(v));
+        right.variables(path).forEach(v => res.add(v));
+        break;
+      }
+      case TokenType.And: {
         const [left, right] = this.nodes;
         assert(left instanceof Token);
         assert(right instanceof Token);
