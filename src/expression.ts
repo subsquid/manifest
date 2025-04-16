@@ -8,6 +8,8 @@ const alphaNum = new Set([...nums, ...alpha]);
 const identifiers = new Set([...alphaNum, '_', '-']);
 
 export class ParsingError extends Error {
+  readonly name = 'ParsingError';
+
   constructor(message: string, pos: number) {
     super(message + ` [${pos}]`);
   }
@@ -179,11 +181,17 @@ export class Token {
         const [n0] = this.nodes;
         assert(typeof n0 === 'string');
 
+        if (ctx === undefined || ctx === null) {
+          throw new UndefinedVariableError(ctxPath, n0);
+        }
+
         const path = [...ctxPath, n0];
         if (!!ctx?.hasOwnProperty(n0)) {
-          return { value: ctx[n0], path };
+          return { value: ctx[n0] ?? undefined, path };
+        } else if (ctxPath.length === 0) {
+          throw new UndefinedVariableError(path);
         } else {
-          throw new EvaluationError(`"${path.join('.')}" is not defined`);
+          return { value: undefined, path };
         }
       }
       case TokenType.StringLiteral: {
@@ -229,6 +237,13 @@ export class Token {
 }
 
 export class EvaluationError extends Error {}
+
+export class UndefinedVariableError extends EvaluationError {
+  constructor(path: string[], child?: string) {
+    super(`"${path.join('.')}" is not defined${child ? ` (reading '${child}')` : ''}`);
+    this.name = 'UndefinedVariableError';
+  }
+}
 
 export class Expression {
   constructor(readonly tokens: (string | Token)[]) {}
