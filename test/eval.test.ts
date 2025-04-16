@@ -101,7 +101,7 @@ describe('Env Evaluation', () => {
         }),
       ).toThrow(
         new ManifestEvaluatingError([
-          'Manifest env variable "deploy.env.foo" can not be mapped for "${{foo.}}" expression: Unexpected EOF [0,7]',
+          'Manifest env variable "deploy.env.foo" can not be mapped for "${{foo.}}" expression: Unexpected end of input [7]',
         ]),
       );
     });
@@ -130,7 +130,7 @@ describe('Env Evaluation', () => {
         }),
       ).toThrow(
         new ManifestEvaluatingError([
-          'Manifest env variable "deploy.processor.[0].env.foo" can not be mapped for "${{foo.}}" expression: Unexpected EOF [0,7]',
+          'Manifest env variable "deploy.processor.[0].env.foo" can not be mapped for "${{foo.}}" expression: Unexpected end of input [7]',
         ]),
       );
     });

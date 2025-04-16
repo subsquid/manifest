@@ -1,4 +1,10 @@
-import { ParsingError, Parser, EvaluationError } from '../src/expression';
+import {
+  ParsingError,
+  Parser,
+  EvaluationError,
+  UnexpectedTokenError,
+  UnexpectedEndOfInputError,
+} from '../src/expression';
 
 describe('Expression', () => {
   const parser = new Parser();
@@ -21,12 +27,8 @@ describe('Expression', () => {
     });
 
     it('should throw on invalid identifiers', () => {
-      expect(() => parser.parse('${{foo-}}').eval({})).toThrow(
-        new EvaluationError("Unexpected '-' [0,6]"),
-      );
-      expect(() => parser.parse('${{9foo}}').eval({})).toThrow(
-        new EvaluationError("Unexpected '9' [0,3]"),
-      );
+      expect(() => parser.parse('${{foo-}}').eval({})).toThrow(new UnexpectedTokenError('-', 6));
+      expect(() => parser.parse('${{9foo}}').eval({})).toThrow(new UnexpectedTokenError('9', 3));
     });
 
     it('should throw on not defined identifier', () => {
@@ -62,23 +64,19 @@ describe('Expression', () => {
     });
 
     it('should throw on invalid syntax', () => {
-      expect(() => parser.parse('${{.foo}}')).toThrow(new ParsingError("Unexpected '.'", [0, 3]));
-      expect(() => parser.parse('${{foo.}}')).toThrow(new ParsingError('Unexpected EOF', [0, 7]));
+      expect(() => parser.parse('${{.foo}}')).toThrow(new UnexpectedTokenError('.', 3));
+      expect(() => parser.parse('${{foo.}}')).toThrow(new UnexpectedEndOfInputError(7));
     });
   });
 
   describe('parsing errors', () => {
     it('should throw on unexpected characters', () => {
-      expect(() => parser.parse('${{foo @ bar}}')).toThrow(
-        new ParsingError("Unexpected '@'", [0, 7]),
-      );
-      expect(() => parser.parse('${{foo.9bar}}')).toThrow(
-        new ParsingError("Unexpected '9'", [0, 7]),
-      );
+      expect(() => parser.parse('${{foo @ bar}}')).toThrow(new UnexpectedTokenError('@', 7));
+      expect(() => parser.parse('${{foo.9bar}}')).toThrow(new UnexpectedTokenError('9', 7));
     });
 
     it('should throw on empty expression', () => {
-      expect(() => parser.parse('${{    }}')).toThrow(new ParsingError('Unexpected EOF', [0, 7]));
+      expect(() => parser.parse('${{    }}')).toThrow(new UnexpectedEndOfInputError(7));
     });
   });
 

@@ -7,6 +7,24 @@ const alpha = new Set('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'.spl
 const alphaNum = new Set([...nums, ...alpha]);
 const identifiers = new Set([...alphaNum, '_', '-']);
 
+export class ParsingError extends Error {
+  constructor(message: string, pos: number) {
+    super(message + ` [${pos}]`);
+  }
+}
+
+export class UnexpectedTokenError extends ParsingError {
+  constructor(token: string, pos: number) {
+    super(`Unexpected token '${token}'`, pos);
+  }
+}
+
+export class UnexpectedEndOfInputError extends ParsingError {
+  constructor(pos: number) {
+    super('Unexpected end of input', pos);
+  }
+}
+
 export class Parser {
   constructor() {}
 
@@ -35,6 +53,10 @@ export class Tokenizer {
     private offset = 0,
   ) {}
 
+  private getPos(): number {
+    return this.pos + this.offset;
+  }
+
   tokenize(): Token {
     let token: Token | undefined;
 
@@ -51,7 +73,7 @@ export class Tokenizer {
             this.pos++;
             token = new Token(TokenType.MemberAccess, [token, this.tokenize()]);
           } else {
-            throw this.error("Unexpected '.'");
+            throw new UnexpectedTokenError('.', this.getPos());
           }
           break;
         default:
@@ -59,14 +81,14 @@ export class Tokenizer {
           if (value) {
             token = new Token(TokenType.Identifier, [value]);
           } else {
-            throw this.error(`Unexpected '${this.str[this.pos]}'`);
+            throw new UnexpectedTokenError(this.str[this.pos], this.getPos());
           }
           break;
       }
     }
 
     if (!token) {
-      throw this.error(`Unexpected EOF`);
+      throw new UnexpectedEndOfInputError(this.getPos());
     }
 
     return token;
@@ -85,13 +107,7 @@ export class Tokenizer {
   }
 
   error(msg: string) {
-    return new ParsingError(msg, [0, this.pos + this.offset]);
-  }
-}
-
-export class ParsingError extends Error {
-  constructor(message: string, pos: [number, number]) {
-    super(message + ` [${pos}]`);
+    return new UnexpectedEndOfInputError(this.getPos());
   }
 }
 
