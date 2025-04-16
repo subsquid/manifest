@@ -15,6 +15,19 @@ export class ParsingError extends Error {
   }
 }
 
+export function isTrue(value: unknown): boolean {
+  switch (value) {
+    case undefined:
+    case null:
+    case '':
+    case 0:
+    case false:
+      return false;
+    default:
+      return true;
+  }
+}
+
 export class UnexpectedTokenError extends ParsingError {
   constructor(token: string, pos: number) {
     super(`Unexpected token '${token}'`, pos);
@@ -65,7 +78,7 @@ export class Tokenizer {
     return this.pos + this.offset;
   }
 
-  tokenize(): Token {
+  tokenize(priority: TokenType = 0): Token {
     let token: Token | undefined;
 
     while (this.str[this.pos]) {
@@ -83,20 +96,37 @@ export class Tokenizer {
           token = new Token(TokenType.StringLiteral, [this.string()]);
           break;
         case '.':
-          if (token) {
-            this.pos++;
-            token = new Token(TokenType.MemberAccess, [token, this.tokenize()]);
-          } else {
+          if (!token) {
             throw new UnexpectedTokenError('.', this.getPos());
           }
+          this.pos++;
+          token = new Token(TokenType.MemberAccess, [token, this.tokenize(TokenType.MemberAccess)]);
+
+          break;
+        case '|':
+          if (this.str[this.pos + 1] !== '|') {
+            throw new UnexpectedTokenError('|', this.getPos());
+          }
+          if (!token) {
+            throw new UnexpectedTokenError('||', this.getPos());
+          }
+          if (priority > TokenType.Or) return token;
+          this.pos += 2;
+          token = new Token(TokenType.Or, [token, this.tokenize(TokenType.Or)]);
           break;
         default:
           const value = this.id();
-          if (value) {
-            token = new Token(TokenType.Identifier, [value]);
-          } else {
+          if (!value) {
             throw new UnexpectedTokenError(this.str[this.pos], this.getPos());
           }
+          if (nums.has(value[0])) {
+            throw new UnexpectedTokenError(value[0], this.getPos());
+          }
+          if (value.endsWith('-')) {
+            throw new UnexpectedTokenError('-', this.getPos() + value.length - 1);
+          }
+          token = new Token(TokenType.Identifier, [value]);
+
           break;
       }
     }
@@ -155,27 +185,40 @@ export class Tokenizer {
 }
 
 export enum TokenType {
-  Identifier,
+  Or,
   MemberAccess,
   StringLiteral,
+  Identifier,
 }
 
 export class Token {
   constructor(
-    private type: TokenType,
-    private nodes: (string | Token)[],
+    readonly type: TokenType,
+    readonly nodes: (string | Token)[],
   ) {}
 
   eval(ctx: any, ctxPath: string[]): { value: unknown; path: string[] } {
     switch (this.type) {
+      case TokenType.Or: {
+        const [left, right] = this.nodes;
+        assert(left instanceof Token);
+        assert(right instanceof Token);
+
+        const leftResult = left.eval(ctx, [...ctxPath]);
+        if (isTrue(leftResult.value)) {
+          return leftResult;
+        }
+
+        return right.eval(ctx, [...ctxPath]);
+      }
       case TokenType.MemberAccess: {
         const [n0, n1] = this.nodes;
         assert(n0 instanceof Token);
         assert(n1 instanceof Token);
 
-        const { value, path } = n0.eval(ctx, ctxPath);
+        const { value, path } = n0.eval(ctx, [...ctxPath]);
 
-        return n1.eval(value, path);
+        return n1.eval(value, [...path]);
       }
       case TokenType.Identifier: {
         const [n0] = this.nodes;
@@ -187,7 +230,7 @@ export class Token {
 
         const path = [...ctxPath, n0];
         if (!!ctx?.hasOwnProperty(n0)) {
-          return { value: ctx[n0] ?? undefined, path };
+          return { value: ctx[n0], path };
         } else if (ctxPath.length === 0) {
           throw new UndefinedVariableError(path);
         } else {
@@ -206,6 +249,15 @@ export class Token {
     const res: Set<string> = new Set();
 
     switch (this.type) {
+      case TokenType.Or: {
+        const [left, right] = this.nodes;
+        assert(left instanceof Token);
+        assert(right instanceof Token);
+
+        left.variables(path).forEach(v => res.add(v));
+        right.variables(path).forEach(v => res.add(v));
+        break;
+      }
       case TokenType.MemberAccess: {
         const [n0, n1] = this.nodes;
         assert(n0 instanceof Token);

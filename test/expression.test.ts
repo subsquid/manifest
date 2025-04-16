@@ -191,4 +191,82 @@ describe('Expression', () => {
       );
     });
   });
+
+  describe('logical OR operator', () => {
+    it('should return first non-falsy value', () => {
+      expect(parser.parse('${{foo || bar}}').eval({ foo: 'first', bar: 'second' })).toEqual(
+        'first',
+      );
+      expect(parser.parse('${{foo || bar}}').eval({ foo: null, bar: 'second' })).toEqual('second');
+      expect(parser.parse('${{foo || bar}}').eval({ foo: undefined, bar: 'second' })).toEqual(
+        'second',
+      );
+      expect(parser.parse('${{foo || bar}}').eval({ foo: '', bar: 'second' })).toEqual('second');
+      expect(parser.parse('${{foo || bar}}').eval({ foo: 0, bar: 'second' })).toEqual('second');
+      expect(parser.parse('${{foo || bar}}').eval({ foo: false, bar: 'second' })).toEqual('second');
+    });
+
+    it('should handle nested expressions', () => {
+      expect(
+        parser.parse('${{foo.bar || baz.qux}}').eval({
+          foo: { bar: 'first' },
+          baz: { qux: 'second' },
+        }),
+      ).toEqual('first');
+
+      expect(
+        parser.parse('${{foo.bar || baz.qux}}').eval({
+          foo: { bar: null },
+          baz: { qux: 'second' },
+        }),
+      ).toEqual('second');
+    });
+
+    it('should handle multiple OR operators', () => {
+      expect(
+        parser.parse('${{foo || bar || baz}}').eval({
+          foo: '',
+          bar: 0,
+          baz: 'third',
+        }),
+      ).toEqual('third');
+
+      expect(
+        parser.parse('${{foo || bar || baz}}').eval({
+          foo: 'first',
+          bar: 'second',
+          baz: 'third',
+        }),
+      ).toEqual('first');
+
+      expect(
+        parser.parse('${{foo || bar || baz}}').eval({
+          foo: null,
+          bar: 'second',
+          baz: 'third',
+        }),
+      ).toEqual('second');
+
+      expect(
+        parser.parse('${{foo || bar || baz}}').eval({
+          foo: false,
+          bar: 0,
+          baz: 'third',
+        }),
+      ).toEqual('third');
+
+      expect(
+        parser.parse('${{foo || bar || baz}}').eval({
+          foo: null,
+          bar: null,
+          baz: 'third',
+        }),
+      ).toEqual('third');
+    });
+
+    it('should handle string literals', () => {
+      expect(parser.parse("${{foo || 'default'}}").eval({ foo: 'value' })).toEqual('value');
+      expect(parser.parse("${{foo || 'default'}}").eval({ foo: null })).toEqual('default');
+    });
+  });
 });
