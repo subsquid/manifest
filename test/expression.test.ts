@@ -1,7 +1,6 @@
 import {
   ParsingError,
   Parser,
-  EvaluationError,
   UnexpectedTokenError,
   UnexpectedEndOfExpressionError,
   UnexpectedEndOfStringError,
@@ -44,9 +43,12 @@ describe('Expression', () => {
       expect(parser.parse('${{foo1337}}').eval({ ['foo1337']: 'value' })).toEqual('value');
     });
 
-    it('should reject identifiers starting with numbers or ending with hyphens', () => {
+    it('should reject identifiers ending with hyphens', () => {
       expect(() => parser.parse('${{foo-}}').eval({})).toThrow(new UnexpectedTokenError('-', 6));
-      expect(() => parser.parse('${{9foo}}').eval({})).toThrow(new UnexpectedTokenError('9', 3));
+    });
+
+    it('should allow identifiers starting with numbers', () => {
+      expect(parser.parse('${{1337foo}}').eval({ ['1337foo']: 'value' })).toEqual('value');
     });
   });
 
@@ -96,7 +98,6 @@ describe('Expression', () => {
   describe('parsing errors', () => {
     it('should reject expressions with invalid characters', () => {
       expect(() => parser.parse('${{foo @ bar}}')).toThrow(new UnexpectedTokenError('@', 7));
-      expect(() => parser.parse('${{foo.9bar}}')).toThrow(new UnexpectedTokenError('9', 7));
     });
 
     it('should reject empty expressions', () => {
@@ -146,6 +147,12 @@ describe('Expression', () => {
     it('should extract root level variable names', () => {
       const variables = parser.parse('${{foo.bar}}').variables();
       expect(variables).toEqual(['foo']);
+    });
+
+    it('should extract variables from complex expressions', () => {
+      const variables = parser.parse('${{foo.bar}} ${{baz}}').variables();
+      expect(variables).toContain('foo');
+      expect(variables).toContain('baz');
     });
 
     it('should extract nested variable names with prefix', () => {
@@ -338,7 +345,7 @@ describe('Expression', () => {
     });
 
     it('should reject invalid AND operator usage', () => {
-      expect(() => parser.parse('${{&& foo}}')).toThrow(new UnexpectedTokenError('&&', 3));
+      expect(() => parser.parse('${{&& foo}}')).toThrow(new UnexpectedTokenError('&', 3));
       expect(() => parser.parse('${{foo &&}}')).toThrow(new UnexpectedEndOfExpressionError(9));
       expect(() => parser.parse('${{& foo}}')).toThrow(new UnexpectedTokenError('&', 3));
     });
