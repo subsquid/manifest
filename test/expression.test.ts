@@ -5,6 +5,7 @@ import {
   UnexpectedEndOfExpressionError,
   UnexpectedEndOfStringError,
   UndefinedVariableError,
+  UnexpectedEndOfParenthesesError,
 } from '../src/expression';
 
 describe('Expression', () => {
@@ -392,6 +393,103 @@ describe('Expression', () => {
           baz: 'third',
         }),
       ).toEqual('');
+    });
+  });
+
+  describe('parentheses operator', () => {
+    it('should respect parentheses for operator precedence with OR and AND', () => {
+      // Test (foo || bar) && baz vs foo || (bar && baz)
+      expect(
+        parser.parse('${{(foo || bar) && baz}}').eval({
+          foo: 'first',
+          bar: 'second',
+          baz: 'third',
+        }),
+      ).toEqual('third');
+
+      expect(
+        parser.parse('${{(foo || bar) && baz}}').eval({
+          foo: 'first',
+          bar: 'second',
+          baz: null,
+        }),
+      ).toEqual('');
+
+      expect(
+        parser.parse('${{foo || (bar && baz)}}').eval({
+          foo: null,
+          bar: 'second',
+          baz: 'third',
+        }),
+      ).toEqual('third');
+
+      expect(
+        parser.parse('${{foo || (bar && baz)}}').eval({
+          foo: null,
+          bar: null,
+          baz: 'third',
+        }),
+      ).toEqual('');
+
+      expect(
+        parser.parse('${{foo || (bar && baz)}}').eval({
+          foo: 'first',
+          bar: null,
+          baz: 'third',
+        }),
+      ).toEqual('first');
+    });
+
+    it('should handle nested parentheses', () => {
+      expect(
+        parser.parse('${{(foo || (bar && baz))}}').eval({
+          foo: null,
+          bar: 'second',
+          baz: 'third',
+        }),
+      ).toEqual('third');
+
+      expect(
+        parser.parse('${{((foo || bar) && baz)}}').eval({
+          foo: 'first',
+          bar: 'second',
+          baz: 'third',
+        }),
+      ).toEqual('third');
+    });
+
+    it('should handle whitespace inside and around parentheses', () => {
+      expect(
+        parser.parse('${{ ( foo || bar ) && baz }}').eval({
+          foo: 'first',
+          bar: 'second',
+          baz: 'third',
+        }),
+      ).toEqual('third');
+    });
+
+    it('should handle parentheses with member access', () => {
+      expect(
+        parser.parse('${{(foo.bar) || baz}}').eval({
+          foo: { bar: 'value' },
+          baz: 'fallback',
+        }),
+      ).toEqual('value');
+
+      expect(
+        parser.parse('${{(foo.bar).baz}}').eval({
+          foo: { bar: { baz: 'nested' } },
+        }),
+      ).toEqual('nested');
+    });
+
+    it('should throw UnexpectedEndOfParenthesesError for unclosed parentheses', () => {
+      expect(() => parser.parse('${{(foo}}')).toThrow(
+        new UnexpectedEndOfParenthesesError('foo', 7),
+      );
+      expect(() => parser.parse('${{(foo || bar}}')).toThrow(
+        new UnexpectedEndOfParenthesesError('foo || bar', 14),
+      );
     });
   });
 });

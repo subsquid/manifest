@@ -21,7 +21,13 @@ export class UnexpectedEndOfExpressionError extends ParsingError {
 
 export class UnexpectedEndOfStringError extends ParsingError {
   constructor(str: string, pos: number) {
-    super(`Unexpected end of string: '${str}'`, pos);
+    super(`Unexpected end of string: '${str}`, pos);
+  }
+}
+
+export class UnexpectedEndOfParenthesesError extends ParsingError {
+  constructor(str: string, pos: number) {
+    super(`Unexpected end of parentheses: (${str}`, pos);
   }
 }
 
@@ -115,7 +121,10 @@ export class Tokenizer {
       if (this.str[this.pos] !== '|' || this.str[this.pos + 1] !== '|') break;
       this.pos += 2;
       const right = this.and();
-      left = [OpType.Or, left, right];
+      left =
+        left[0] === OpType.Or
+          ? [OpType.Or, left[1], [OpType.Or, left[2], right]]
+          : [OpType.Or, left, right];
     }
 
     return left;
@@ -128,7 +137,10 @@ export class Tokenizer {
       if (this.str[this.pos] !== '&' || this.str[this.pos + 1] !== '&') break;
       this.pos += 2;
       const right = this.access();
-      left = [OpType.And, left, right];
+      left =
+        left[0] === OpType.And
+          ? [OpType.And, left[1], [OpType.And, left[2], right]]
+          : [OpType.And, left, right];
     }
 
     return left;
@@ -158,6 +170,18 @@ export class Tokenizer {
       return [OpType.StringLiteral, this.string()];
     }
 
+    if (this.str[this.pos] === '(') {
+      this.pos++;
+      const start = this.pos;
+      const expr = this.or();
+      this.whitespace();
+      if (this.str[this.pos] !== ')') {
+        throw new UnexpectedEndOfParenthesesError(this.str.slice(start, this.pos), this.getPos());
+      }
+      this.pos++;
+      return expr;
+    }
+
     const id = this.id();
     if (!id) {
       throw new UnexpectedTokenError(this.str[this.pos], this.getPos());
@@ -169,26 +193,15 @@ export class Tokenizer {
   private string(): string {
     this.pos++;
     let result = '';
-    let escaped = false;
 
     while (this.str[this.pos]) {
-      if (escaped) {
-        if (this.str[this.pos] === "'") {
-          result += "'";
-        } else {
-          result += this.str[this.pos];
-        }
-        escaped = false;
-      } else if (this.str[this.pos] === "'") {
-        if (this.str[this.pos + 1] === "'") {
-          escaped = true;
-        } else {
-          this.pos++;
+      if (this.str[this.pos] === "'") {
+        this.pos++;
+        if (this.str[this.pos] !== "'") {
           return result;
         }
-      } else {
-        result += this.str[this.pos];
       }
+      result += this.str[this.pos];
       this.pos++;
     }
 
@@ -243,30 +256,31 @@ export class Expression {
     switch (type) {
       case OpType.Or: {
         assert(Array.isArray(args[0]) && Array.isArray(args[1]), 'Or must have two tokens');
-        const leftValue = this.evalToken(args[0], ctx, [...path]);
-        return isTrue(leftValue.value) ? leftValue : this.evalToken(args[1], ctx, [...path]);
+        const leftValue = this.evalToken(args[0], ctx, path);
+        return isTrue(leftValue.value) ? leftValue : this.evalToken(args[1], ctx, path);
       }
       case OpType.And: {
         assert(Array.isArray(args[0]) && Array.isArray(args[1]), 'And must have two tokens');
-        const leftValue = this.evalToken(args[0], ctx, [...path]);
-        return isTrue(leftValue.value) ? this.evalToken(args[1], ctx, [...path]) : leftValue;
+        const leftValue = this.evalToken(args[0], ctx, path);
+        return isTrue(leftValue.value) ? this.evalToken(args[1], ctx, path) : leftValue;
       }
       case OpType.MemberAccess: {
         assert(
           Array.isArray(args[0]) && Array.isArray(args[1]),
           'MemberAccess must have two tokens',
         );
-        const obj = this.evalToken(args[0], ctx, [...path]);
+        const obj = this.evalToken(args[0], ctx, path);
         return this.evalToken(args[1], obj.value, [...path, ...obj.path]);
       }
       case OpType.Identifier: {
-        const id = args[0] as string;
-        const newPath = [...path, id];
+        assert(typeof args[0] === 'string', 'Identifier must be a string');
+        const id = args[0];
 
         if (ctx === undefined || ctx === null) {
           throw new UndefinedVariableError(path, id);
         }
 
+        const newPath = [...path, id];
         if (ctx.hasOwnProperty(id)) {
           return { value: ctx[id], path: newPath };
         } else if (path.length === 0) {
@@ -275,8 +289,10 @@ export class Expression {
           return { value: undefined, path: newPath };
         }
       }
-      case OpType.StringLiteral:
+      case OpType.StringLiteral: {
+        assert(typeof args[0] === 'string', 'StringLiteral must be a string');
         return { value: args[0], path };
+      }
     }
   }
 
@@ -297,45 +313,44 @@ export class Expression {
 
     switch (type) {
       case OpType.Or:
-      case OpType.And:
-        this.collectVariables(args[0] as Token, result, path);
-        this.collectVariables(args[1] as Token, result, path);
+      case OpType.And: {
+        assert(Array.isArray(args[0]) && Array.isArray(args[1]), 'Or and And must have two tokens');
+        this.collectVariables(args[0], result, path);
+        this.collectVariables(args[1], result, path);
         break;
-
-      case OpType.MemberAccess:
-        // If we have a prefix path, check if it matches the current path
+      }
+      case OpType.MemberAccess: {
+        assert(
+          Array.isArray(args[0]) && Array.isArray(args[1]),
+          'MemberAccess must have two tokens',
+        );
         if (path.length > 0) {
-          const memberExpr = args[0] as Token;
+          const memberExpr = args[0];
           if (memberExpr[0] === OpType.Identifier && memberExpr[1] === path[0]) {
-            // If matched first segment of prefix, continue with the rest
-            this.collectVariables(args[1] as Token, result, path.slice(1));
+            this.collectVariables(args[1], result, path.slice(1));
           }
         } else {
-          // No prefix, so collect top-level identifiers
-          const memberExpr = args[0] as Token;
+          const memberExpr = args[0];
           if (memberExpr[0] === OpType.Identifier) {
-            result.add(memberExpr[1] as string);
+            result.add(memberExpr[1]);
           } else {
             this.collectVariables(memberExpr, result, path);
           }
         }
         break;
-
-      case OpType.Identifier:
-        const id = args[0] as string;
+      }
+      case OpType.Identifier: {
+        assert(typeof args[0] === 'string', 'Identifier must be a string');
+        const id = args[0];
         if (path.length === 0) {
-          // No prefix, collect top-level identifiers
           result.add(id);
         } else if (path.length === 1 && path[0] === id) {
-          // This identifier matches our prefix
-          // Don't add it to results because we're looking for children
         } else if (path.length > 0 && path[0] !== id) {
-          // Not in the path we're looking for
         } else {
-          // Add the identifier if we're looking for nested props
           result.add(id);
         }
         break;
+      }
     }
   }
 }
