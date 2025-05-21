@@ -51,13 +51,11 @@ interface OperatorConfig {
   associativity: 'left' | 'right';
 }
 
-export type Token =
-  | [OpType.Or, Token, Token]
-  | [OpType.And, Token, Token]
-  | [OpType.MemberAccess, Token, Token]
-  | [OpType.Identifier, string]
-  | [OpType.StringLiteral, string]
-  | [OpType.Parentheses, Token];
+interface Token {
+  type: OpType;
+  eval: (ctx: any, path: string[]) => { value: unknown; path: string[] };
+  //variables: (prefix: string[]) => string[];
+}
 
 export const EXPR_PATTERN = /(\${{[^}]*}})/;
 
@@ -74,7 +72,7 @@ export class Parser {
         if (token) {
           tokens.push(token);
         }
-      } else {
+      } else if (!!i) {
         tokens.push(i);
       }
       pos += i.length;
@@ -122,35 +120,54 @@ export class Tokenizer {
   }
 
   private binary(left: Token | undefined, precedence: number): Token | undefined {
+    return this.or(left, precedence) || this.access(left, precedence);
+  }
+
+  private or(left: Token | undefined, precedence: number): Token | undefined {
+    if (this.str[this.pos] !== '|' || this.str[this.pos + 1] !== '|') return;
+    if (precedence > OpType.Or) return;
+
     const start = this.pos;
 
-    let operator: any;
-    switch (this.str[this.pos]) {
-      case '|': {
-        if (this.str[this.pos + 1] === '|') {
-          this.pos += 2;
-          operator = { type: OpType.Or, precedence: OpType.Or + 1 };
-        }
-        break;
-      }
-      case '.': {
-        this.pos++;
-        operator = { type: OpType.MemberAccess, precedence: OpType.MemberAccess + 1 };
-        break;
-      }
-    }
-    if (!operator || operator.type < precedence) {
-      this.pos = start;
-      return undefined;
-    }
     if (!left) {
-      throw this.unexpectedToken(this.str.slice(start, this.pos), start);
+      throw this.unexpectedToken('||', start);
     }
-    const right = this.next(operator.precedence);
-    if (right === undefined) {
-      throw this.unexpectedToken(this.str.slice(start, this.pos), start);
+    this.pos += 2;
+    const right = this.next(OpType.Or + 1);
+    if (!right) {
+      throw this.unexpectedToken('||', start);
     }
-    return [operator.type, left, right] as Token;
+    return {
+      type: OpType.Or,
+      eval: (ctx, path) => {
+        const leftValue = left.eval(ctx, path);
+        return isTrue(leftValue.value) ? leftValue : right.eval(ctx, path);
+      },
+    };
+  }
+
+  private access(left: Token | undefined, precedence: number): Token | undefined {
+    if (this.str[this.pos] !== '.') return;
+    if (precedence > OpType.MemberAccess) return;
+
+    if (!left) {
+      throw this.unexpectedToken('.', this.pos);
+    }
+
+    const start = this.pos;
+    this.pos++;
+    const right = this.next(OpType.MemberAccess + 1);
+    if (!right) {
+      throw this.unexpectedToken('.', start);
+    }
+
+    return {
+      type: OpType.MemberAccess,
+      eval: (ctx, path) => {
+        const leftValue = left.eval(ctx, path);
+        return right.eval(leftValue.value, leftValue.path);
+      },
+    };
   }
 
   private unary(): Token | undefined {
@@ -169,7 +186,10 @@ export class Tokenizer {
       throw this.unexpectedToken(this.str.slice(start, this.pos), start);
     }
     this.pos++;
-    return [OpType.Parentheses, expr];
+    return {
+      type: OpType.Parentheses,
+      eval: (ctx, path) => expr.eval(ctx, path),
+    };
   }
 
   private string(): Token | undefined {
@@ -183,7 +203,10 @@ export class Tokenizer {
         this.pos++;
         if (this.str[this.pos] !== "'") {
           this.pos++;
-          return [OpType.StringLiteral, result];
+          return {
+            type: OpType.StringLiteral,
+            eval: (_, path) => ({ value: result, path }),
+          };
         }
       }
       result += this.str[this.pos];
@@ -201,10 +224,27 @@ export class Tokenizer {
       }
       this.pos++;
     }
-
     if (this.pos === start) return;
 
-    return [OpType.Identifier, this.str.slice(start, this.pos)];
+    const id = this.str.slice(start, this.pos);
+    return {
+      type: OpType.Identifier,
+      eval: (ctx, path) => {
+        if (ctx === undefined || ctx === null) {
+          throw new UndefinedVariableError(path, id);
+        }
+
+        const newPath = [...path, id];
+
+        if (ctx.hasOwnProperty(id)) {
+          return { value: ctx[id], path: newPath };
+        } else if (path.length === 0) {
+          throw new UndefinedVariableError(newPath);
+        } else {
+          return { value: undefined, path: newPath };
+        }
+      },
+    };
   }
 
   private whitespace(): boolean {
@@ -220,18 +260,16 @@ export class Tokenizer {
 }
 
 export class Expression {
-  constructor(readonly tokens: (string | Token | null)[]) {}
+  constructor(readonly tokens: (string | Token)[]) {}
 
   eval(context: Record<string, any> = {}): string {
     const res: unknown[] = [];
 
     for (const token of this.tokens) {
-      if (token === null) {
-        res.push('');
-      } else if (typeof token === 'string') {
+      if (typeof token === 'string') {
         res.push(token);
       } else {
-        const { value } = this.evalToken(token, context, []);
+        const { value } = token.eval(context, []);
         res.push(value);
       }
     }
@@ -239,111 +277,61 @@ export class Expression {
     return res.join('');
   }
 
-  private evalToken(node: Token, ctx: any, path: string[]): { value: unknown; path: string[] } {
-    const [type, ...args] = node;
+  //variables(prefix: string[] = []): string[] {
+  //  const result = new Set<string>();
+  //
+  //  for (const token of this.tokens) {
+  //    if (token && typeof token !== 'string') {
+  //      this.collectVariables(token, result, prefix);
+  //    }
+  //  }
+  //
+  //  return [...result];
+  //}
 
-    switch (type) {
-      case OpType.Or: {
-        assert(Array.isArray(args[0]) && Array.isArray(args[1]), 'Or must have two tokens');
-        const leftValue = this.evalToken(args[0], ctx, path);
-        return isTrue(leftValue.value) ? leftValue : this.evalToken(args[1], ctx, path);
-      }
-      case OpType.And: {
-        assert(Array.isArray(args[0]) && Array.isArray(args[1]), 'And must have two tokens');
-        const leftValue = this.evalToken(args[0], ctx, path);
-        return isTrue(leftValue.value) ? this.evalToken(args[1], ctx, path) : leftValue;
-      }
-      case OpType.MemberAccess: {
-        assert(
-          Array.isArray(args[0]) && Array.isArray(args[1]),
-          'MemberAccess must have two tokens',
-        );
-        const obj = this.evalToken(args[0], ctx, path);
-        return this.evalToken(args[1], obj.value, [...path, ...obj.path]);
-      }
-      case OpType.Identifier: {
-        assert(typeof args[0] === 'string', 'Identifier must be a string');
-        const id = args[0];
-
-        if (ctx === undefined || ctx === null) {
-          throw new UndefinedVariableError(path, id);
-        }
-
-        const newPath = [...path, id];
-        if (ctx.hasOwnProperty(id)) {
-          return { value: ctx[id], path: newPath };
-        } else if (path.length === 0) {
-          throw new UndefinedVariableError(newPath);
-        } else {
-          return { value: undefined, path: newPath };
-        }
-      }
-      case OpType.StringLiteral: {
-        assert(typeof args[0] === 'string', 'StringLiteral must be a string');
-        return { value: args[0], path };
-      }
-      case OpType.Parentheses: {
-        assert(Array.isArray(args[0]), 'Parentheses must have one token');
-        return this.evalToken(args[0], ctx, path);
-      }
-    }
-  }
-
-  variables(prefix: string[] = []): string[] {
-    const result = new Set<string>();
-
-    for (const token of this.tokens) {
-      if (token && typeof token !== 'string') {
-        this.collectVariables(token, result, prefix);
-      }
-    }
-
-    return [...result];
-  }
-
-  private collectVariables(node: Token, result: Set<string>, path: string[] = []): void {
-    const [type, ...args] = node;
-
-    switch (type) {
-      case OpType.Or:
-      case OpType.And: {
-        assert(Array.isArray(args[0]) && Array.isArray(args[1]), 'Or and And must have two tokens');
-        this.collectVariables(args[0], result, path);
-        this.collectVariables(args[1], result, path);
-        break;
-      }
-      case OpType.MemberAccess: {
-        assert(
-          Array.isArray(args[0]) && Array.isArray(args[1]),
-          'MemberAccess must have two tokens',
-        );
-        if (path.length > 0) {
-          const memberExpr = args[0];
-          if (memberExpr[0] === OpType.Identifier && memberExpr[1] === path[0]) {
-            this.collectVariables(args[1], result, path.slice(1));
-          }
-        } else {
-          const memberExpr = args[0];
-          if (memberExpr[0] === OpType.Identifier) {
-            result.add(memberExpr[1]);
-          } else {
-            this.collectVariables(memberExpr, result, path);
-          }
-        }
-        break;
-      }
-      case OpType.Identifier: {
-        assert(typeof args[0] === 'string', 'Identifier must be a string');
-        const id = args[0];
-        if (path.length === 0) {
-          result.add(id);
-        } else if (path.length === 1 && path[0] === id) {
-        } else if (path.length > 0 && path[0] !== id) {
-        } else {
-          result.add(id);
-        }
-        break;
-      }
-    }
-  }
+  // private collectVariables(node: Token, result: Set<string>, path: string[] = []): void {
+  //   const [type, ...args] = node;
+  //
+  //   switch (type) {
+  //     case OpType.Or:
+  //     case OpType.And: {
+  //       assert(Array.isArray(args[0]) && Array.isArray(args[1]), 'Or and And must have two tokens');
+  //       this.collectVariables(args[0], result, path);
+  //       this.collectVariables(args[1], result, path);
+  //       break;
+  //     }
+  //     case OpType.MemberAccess: {
+  //       assert(
+  //         Array.isArray(args[0]) && Array.isArray(args[1]),
+  //         'MemberAccess must have two tokens',
+  //       );
+  //       if (path.length > 0) {
+  //         const memberExpr = args[0];
+  //         if (memberExpr[0] === OpType.Identifier && memberExpr[1] === path[0]) {
+  //           this.collectVariables(args[1], result, path.slice(1));
+  //         }
+  //       } else {
+  //         const memberExpr = args[0];
+  //         if (memberExpr[0] === OpType.Identifier) {
+  //           result.add(memberExpr[1]);
+  //         } else {
+  //           this.collectVariables(memberExpr, result, path);
+  //         }
+  //       }
+  //       break;
+  //     }
+  //     case OpType.Identifier: {
+  //       assert(typeof args[0] === 'string', 'Identifier must be a string');
+  //       const id = args[0];
+  //       if (path.length === 0) {
+  //         result.add(id);
+  //       } else if (path.length === 1 && path[0] === id) {
+  //       } else if (path.length > 0 && path[0] !== id) {
+  //       } else {
+  //         result.add(id);
+  //       }
+  //       break;
+  //     }
+  //   }
+  // }
 }

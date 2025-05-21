@@ -152,23 +152,23 @@ describe('Expression', () => {
     });
   });
 
-  describe('variables', () => {
-    it('should extract root level', () => {
-      const variables = parser.parse('${{foo.bar}}').variables();
-      expect(variables).toEqual(['foo']);
-    });
-
-    it('should extract all from complex', () => {
-      const variables = parser.parse('${{foo.bar}} ${{baz}}').variables();
-      expect(variables).toContain('foo');
-      expect(variables).toContain('baz');
-    });
-
-    it('should extract nested with given prefix', () => {
-      const variables = parser.parse('${{foo.bar}}').variables(['foo']);
-      expect(variables).toEqual(['bar']);
-    });
-  });
+  //describe('variables', () => {
+  //  it('should extract root level', () => {
+  //    const variables = parser.parse('${{foo.bar}}').variables();
+  //    expect(variables).toEqual(['foo']);
+  //  });
+  //
+  //  it('should extract all from complex', () => {
+  //    const variables = parser.parse('${{foo.bar}} ${{baz}}').variables();
+  //    expect(variables).toContain('foo');
+  //    expect(variables).toContain('baz');
+  //  });
+  //
+  //  it('should extract nested with given prefix', () => {
+  //    const variables = parser.parse('${{foo.bar}}').variables(['foo']);
+  //    expect(variables).toEqual(['bar']);
+  //  });
+  //});
 
   describe('string literals', () => {
     it('should evaluate simple', () => {
