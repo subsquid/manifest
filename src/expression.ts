@@ -18,8 +18,9 @@ export class EvaluationError extends Error {
 }
 
 export class UndefinedVariableError extends EvaluationError {
-  constructor(path: string[], child?: string) {
-    super(`"${path.join('.')}" is not defined${child ? ` (reading '${child}')` : ''}`);
+  constructor(path: string | string[], child?: string) {
+    const pathStr = Array.isArray(path) ? path.join('.') : path;
+    super(`"${pathStr}" is not defined${child ? ` (reading '${child}')` : ''}`);
   }
 }
 

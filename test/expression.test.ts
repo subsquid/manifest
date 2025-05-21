@@ -86,6 +86,22 @@ describe('Expression', () => {
       expect(() => parser.parse('${{.foo}}')).toThrow(new UnexpectedTokenError('.', 3));
       expect(() => parser.parse('${{foo.}}')).toThrow(new UnexpectedTokenError('.', 6));
     });
+
+    it('should not access built-in properties', () => {
+      expect(parser.parse('${{foo.toString}}').eval({ foo: 'bar' })).toEqual('');
+      expect(parser.parse('${{foo.valueOf}}').eval({ foo: 123 })).toEqual('');
+      expect(parser.parse('${{foo.prototype}}').eval({ foo: {} })).toEqual('');
+      expect(parser.parse('${{foo.constructor}}').eval({ foo: {} })).toEqual('');
+    });
+
+    it('should access properties if explicitly passed', () => {
+      expect(parser.parse('${{foo.toString}}').eval({ foo: { toString: 'custom' } })).toEqual(
+        'custom',
+      );
+      expect(parser.parse('${{foo.valueOf}}').eval({ foo: { valueOf: 'custom' } })).toEqual(
+        'custom',
+      );
+    });
   });
 
   describe('parsing errors', () => {
@@ -272,6 +288,16 @@ describe('Expression', () => {
       expect(() => parser.parse('${{(foo || bar}}')).toThrow(
         new UnexpectedTokenError('(foo || bar', 3),
       );
+    });
+  });
+
+  describe('leading operators', () => {
+    it('should throw error for logical OR', () => {
+      expect(() => parser.parse('${{|| foo}}')).toThrow(new UnexpectedTokenError('||', 3));
+    });
+
+    it('should throw error for member access', () => {
+      expect(() => parser.parse('${{.foo}}')).toThrow(new UnexpectedTokenError('.', 3));
     });
   });
 });
