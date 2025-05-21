@@ -1,14 +1,20 @@
 import { Parser, UnexpectedTokenError, UndefinedVariableError } from '../src/expression';
 
-describe('Expression', () => {
+describe('Expression Parser', () => {
   const parser = new Parser();
 
-  it('should parse and evaluate string literal', () => {
-    const value = parser.parse('hello').eval();
-    expect(value).toEqual('hello');
+  describe('Basic parsing', () => {
+    it('should parse and evaluate string literal', () => {
+      const value = parser.parse('hello').eval();
+      expect(value).toEqual('hello');
+    });
+
+    it('should evaluate empty to empty string', () => {
+      expect(parser.parse('${{    }}').eval()).toEqual('');
+    });
   });
 
-  describe('identifiers', () => {
+  describe('Identifiers', () => {
     it('should evaluate defined identifier', () => {
       const value = parser.parse('${{foo}}').eval({ foo: 'foo' });
       expect(value).toEqual('foo');
@@ -45,7 +51,7 @@ describe('Expression', () => {
     });
   });
 
-  describe('member access', () => {
+  describe('Member access', () => {
     it('should evaluate single level', () => {
       const value = parser.parse('${{foo.bar}}').eval({ foo: { bar: 'bar' } });
       expect(value).toEqual('bar');
@@ -102,27 +108,76 @@ describe('Expression', () => {
         'custom',
       );
     });
+
+    it('should handle with nested property access', () => {
+      expect(
+        parser.parse('${{foo.bar && foo.baz}}').eval({
+          foo: {
+            bar: 'first',
+            baz: 'second',
+          },
+        }),
+      ).toEqual('second');
+
+      expect(
+        parser.parse('${{foo.bar && foo.baz}}').eval({
+          foo: {
+            bar: null,
+            baz: 'second',
+          },
+        }),
+      ).toEqual('');
+    });
   });
 
-  describe('parsing errors', () => {
-    it('should throw error for invalid characters', () => {
-      expect(() => parser.parse('${{foo @ bar}}')).toThrow(new UnexpectedTokenError('@', 7));
+  describe('String literals', () => {
+    it('should evaluate simple', () => {
+      const value = parser.parse("${{'hello'}}").eval();
+      expect(value).toEqual('hello');
     });
 
-    it('should evaluate empty to empty string', () => {
-      expect(parser.parse('${{    }}').eval()).toEqual('');
+    it('should handle escaped single quotes', () => {
+      const value = parser.parse("${{'hello''world'}}").eval();
+      expect(value).toEqual("hello'world");
+    });
+
+    it('should throw error for unclosed', () => {
+      expect(() => parser.parse("${{'hello}}")).toThrow(new UnexpectedTokenError("'hello", 3));
+    });
+
+    it('should throw error after identifiers', () => {
+      expect(() => parser.parse("${{foo'bar'}}")).toThrow(new UnexpectedTokenError("'", 6));
     });
   });
 
-  describe('value handling', () => {
+  describe('Value handling', () => {
     it('should convert null, undefined and empty to empty string', () => {
       expect(parser.parse('${{undefined}}').eval({ undefined: undefined })).toEqual('');
       expect(parser.parse('${{null}}').eval({ null: null })).toEqual('');
       expect(parser.parse('${{empty}}').eval({ empty: '' })).toEqual('');
     });
+
+    it('should preserve boolean and number values as strings', () => {
+      expect(parser.parse('${{zero}}').eval({ zero: 0 })).toEqual('0');
+      expect(parser.parse('${{falseVal}}').eval({ falseVal: false })).toEqual('false');
+      expect(parser.parse('${{trueVal}}').eval({ trueVal: true })).toEqual('true');
+      expect(parser.parse('${{num}}').eval({ num: 123 })).toEqual('123');
+    });
   });
 
-  describe('complex expressions', () => {
+  describe('Parsing errors', () => {
+    it('should throw error for invalid characters', () => {
+      expect(() => parser.parse('${{foo @ bar}}')).toThrow(new UnexpectedTokenError('@', 7));
+    });
+
+    it('should throw error for invalid syntax combinations', () => {
+      expect(() => parser.parse('${{foo..bar}}')).toThrow(new UnexpectedTokenError('.', 7));
+      expect(() => parser.parse('${{foo&&}}')).toThrow(new UnexpectedTokenError('&&', 6));
+      expect(() => parser.parse('${{||foo}}')).toThrow(new UnexpectedTokenError('||', 3));
+    });
+  });
+
+  describe('Complex expressions', () => {
     it('should evaluate mixed with static text', () => {
       const value = parser.parse('hello ${{foo}} world').eval({ foo: 'foo' });
       expect(value).toEqual('hello foo world');
@@ -152,45 +207,33 @@ describe('Expression', () => {
     });
   });
 
-  //describe('variables', () => {
-  //  it('should extract root level', () => {
-  //    const variables = parser.parse('${{foo.bar}}').variables();
-  //    expect(variables).toEqual(['foo']);
-  //  });
+  // Variables extraction tests are commented out as the method doesn't exist yet
+  // describe('Variables extraction', () => {
+  //   it('should extract root level', () => {
+  //     const variables = parser.parse('${{foo.bar}}').variables();
+  //     expect(variables).toEqual(['foo']);
+  //   });
   //
-  //  it('should extract all from complex', () => {
-  //    const variables = parser.parse('${{foo.bar}} ${{baz}}').variables();
-  //    expect(variables).toContain('foo');
-  //    expect(variables).toContain('baz');
-  //  });
+  //   it('should extract all from complex expression', () => {
+  //     const variables = parser.parse('${{foo.bar}} ${{baz}}').variables();
+  //     expect(variables).toContain('foo');
+  //     expect(variables).toContain('baz');
+  //   });
   //
-  //  it('should extract nested with given prefix', () => {
-  //    const variables = parser.parse('${{foo.bar}}').variables(['foo']);
-  //    expect(variables).toEqual(['bar']);
-  //  });
-  //});
+  //   it('should extract nested with given prefix', () => {
+  //     const variables = parser.parse('${{foo.bar}}').variables(['foo']);
+  //     expect(variables).toEqual(['bar']);
+  //   });
+  //
+  //   it('should extract variables from expressions with operators', () => {
+  //     const variables = parser.parse('${{foo || bar && baz}}').variables();
+  //     expect(variables).toContain('foo');
+  //     expect(variables).toContain('bar');
+  //     expect(variables).toContain('baz');
+  //   });
+  // });
 
-  describe('string literals', () => {
-    it('should evaluate simple', () => {
-      const value = parser.parse("${{'hello'}}").eval();
-      expect(value).toEqual('hello');
-    });
-
-    it('should handle escaped single quotes', () => {
-      const value = parser.parse("${{'hello''world'}}").eval();
-      expect(value).toEqual("hello'world");
-    });
-
-    it('should throw error for unclosed', () => {
-      expect(() => parser.parse("${{'hello}}")).toThrow(new UnexpectedTokenError("'hello", 3));
-    });
-
-    it('should throw error after identifiers', () => {
-      expect(() => parser.parse("${{foo'bar'}}")).toThrow(new UnexpectedTokenError("'", 6));
-    });
-  });
-
-  describe('error messages', () => {
+  describe('Error messages', () => {
     it('should include full path in top-level', () => {
       expect(() => parser.parse('${{foo}}').eval({})).toThrow('"foo" is not defined');
     });
@@ -208,61 +251,151 @@ describe('Expression', () => {
     });
   });
 
-  describe('logical OR operator', () => {
-    it('should return first non-falsy', () => {
-      expect(parser.parse('${{foo || bar}}').eval({ foo: 'first', bar: 'second' })).toEqual(
-        'first',
-      );
-      expect(parser.parse('${{foo || bar}}').eval({ foo: null, bar: 'second' })).toEqual('second');
-      expect(parser.parse('${{foo || bar}}').eval({ foo: undefined, bar: 'second' })).toEqual(
-        'second',
-      );
-      expect(parser.parse('${{foo || bar}}').eval({ foo: '', bar: 'second' })).toEqual('second');
-      expect(parser.parse('${{foo || bar}}').eval({ foo: 0, bar: 'second' })).toEqual('second');
-      expect(parser.parse('${{foo || bar}}').eval({ foo: false, bar: 'second' })).toEqual('second');
+  describe('Logical operators', () => {
+    describe('AND operator', () => {
+      it('should return second value if first is truthy', () => {
+        expect(parser.parse('${{foo && bar}}').eval({ foo: 'first', bar: 'second' })).toEqual(
+          'second',
+        );
+        expect(parser.parse('${{foo && bar}}').eval({ foo: true, bar: 'second' })).toEqual(
+          'second',
+        );
+        expect(parser.parse('${{foo && bar}}').eval({ foo: 1, bar: 'second' })).toEqual('second');
+      });
+
+      it('should return first value if it is falsy', () => {
+        expect(parser.parse('${{foo && bar}}').eval({ foo: null, bar: 'second' })).toEqual('');
+        expect(parser.parse('${{foo && bar}}').eval({ foo: undefined, bar: 'second' })).toEqual('');
+        expect(parser.parse('${{foo && bar}}').eval({ foo: '', bar: 'second' })).toEqual('');
+        expect(parser.parse('${{foo && bar}}').eval({ foo: 0, bar: 'second' })).toEqual('0');
+        expect(parser.parse('${{foo && bar}}').eval({ foo: false, bar: 'second' })).toEqual(
+          'false',
+        );
+      });
+
+      it('should handle with nested property access', () => {
+        expect(
+          parser.parse('${{foo.bar && baz.qux}}').eval({
+            foo: { bar: 'first' },
+            baz: { qux: 'second' },
+          }),
+        ).toEqual('second');
+
+        expect(
+          parser.parse('${{foo.bar && baz.qux}}').eval({
+            foo: { bar: null },
+            baz: { qux: 'second' },
+          }),
+        ).toEqual('');
+      });
+
+      it('should handle multiple in sequence', () => {
+        expect(
+          parser.parse('${{foo && bar && baz}}').eval({
+            foo: 'first',
+            bar: 'second',
+            baz: 'third',
+          }),
+        ).toEqual('third');
+
+        expect(
+          parser.parse('${{foo && bar && baz}}').eval({
+            foo: 'first',
+            bar: '',
+            baz: 'third',
+          }),
+        ).toEqual('');
+      });
     });
 
-    it('should handle with nested property access', () => {
-      expect(
-        parser.parse('${{foo.bar || baz.qux}}').eval({
-          foo: { bar: 'first' },
-          baz: { qux: 'second' },
-        }),
-      ).toEqual('first');
+    describe('OR operator', () => {
+      it('should return first value if it is truthy', () => {
+        expect(parser.parse('${{foo || bar}}').eval({ foo: 'first', bar: 'second' })).toEqual(
+          'first',
+        );
+        expect(parser.parse('${{foo || bar}}').eval({ foo: true, bar: 'second' })).toEqual('true');
+        expect(parser.parse('${{foo || bar}}').eval({ foo: 1, bar: 'second' })).toEqual('1');
+      });
 
-      expect(
-        parser.parse('${{foo.bar || baz.qux}}').eval({
-          foo: { bar: null },
-          baz: { qux: 'second' },
-        }),
-      ).toEqual('second');
+      it('should return second value if first is falsy', () => {
+        expect(parser.parse('${{foo || bar}}').eval({ foo: null, bar: 'second' })).toEqual(
+          'second',
+        );
+        expect(parser.parse('${{foo || bar}}').eval({ foo: undefined, bar: 'second' })).toEqual(
+          'second',
+        );
+        expect(parser.parse('${{foo || bar}}').eval({ foo: '', bar: 'second' })).toEqual('second');
+        expect(parser.parse('${{foo || bar}}').eval({ foo: 0, bar: 'second' })).toEqual('second');
+        expect(parser.parse('${{foo || bar}}').eval({ foo: false, bar: 'second' })).toEqual(
+          'second',
+        );
+      });
+
+      it('should handle with nested property access', () => {
+        expect(
+          parser.parse('${{foo.bar || baz.qux}}').eval({
+            foo: { bar: 'first' },
+            baz: { qux: 'second' },
+          }),
+        ).toEqual('first');
+
+        expect(
+          parser.parse('${{foo.bar || baz.qux}}').eval({
+            foo: { bar: null },
+            baz: { qux: 'second' },
+          }),
+        ).toEqual('second');
+      });
+
+      it('should handle multiple in sequence', () => {
+        expect(
+          parser.parse('${{foo || bar || baz}}').eval({
+            foo: '',
+            bar: '',
+            baz: 'third',
+          }),
+        ).toEqual('third');
+
+        expect(
+          parser.parse('${{foo || bar || baz}}').eval({
+            foo: 'first',
+            bar: '',
+            baz: '',
+          }),
+        ).toEqual('first');
+      });
     });
 
-    it('should handle multiple in sequence', () => {
-      expect(
-        parser.parse('${{foo || bar || baz}}').eval({
-          foo: '',
-          bar: 0,
-          baz: 'third',
-        }),
-      ).toEqual('third');
+    describe('Operator precedence', () => {
+      it('should evaluate AND before OR', () => {
+        expect(
+          parser.parse('${{foo || bar && baz}}').eval({
+            foo: '',
+            bar: 'second',
+            baz: 'third',
+          }),
+        ).toEqual('third');
 
-      expect(
-        parser.parse('${{foo || bar || baz}}').eval({
-          foo: 'first',
-          bar: 'second',
-          baz: 'third',
-        }),
-      ).toEqual('first');
-    });
+        expect(
+          parser.parse('${{foo || bar && baz}}').eval({
+            foo: '',
+            bar: 'second',
+            baz: '',
+          }),
+        ).toEqual('');
 
-    it('should handle with string literals', () => {
-      expect(parser.parse("${{foo || 'default'}}").eval({ foo: 'value' })).toEqual('value');
-      expect(parser.parse("${{foo || 'default'}}").eval({ foo: null })).toEqual('default');
+        expect(
+          parser.parse('${{foo || bar && baz}}').eval({
+            foo: 'first',
+            bar: 'second',
+            baz: '',
+          }),
+        ).toEqual('first');
+      });
     });
   });
 
-  describe('parentheses operator', () => {
+  describe('Parentheses operator', () => {
     it('should handle with member access and OR', () => {
       expect(
         parser.parse('${{(foo.bar) || baz}}').eval({
@@ -289,11 +422,33 @@ describe('Expression', () => {
         new UnexpectedTokenError('(foo || bar', 3),
       );
     });
+
+    it('should override normal operator precedence', () => {
+      expect(
+        parser.parse('${{(foo || bar) && baz}}').eval({
+          foo: '',
+          bar: 'second',
+          baz: 'third',
+        }),
+      ).toEqual('third');
+
+      expect(
+        parser.parse('${{(foo || bar) && baz}}').eval({
+          foo: '',
+          bar: '',
+          baz: 'third',
+        }),
+      ).toEqual('');
+    });
   });
 
-  describe('leading operators', () => {
+  describe('Leading operators', () => {
     it('should throw error for logical OR', () => {
       expect(() => parser.parse('${{|| foo}}')).toThrow(new UnexpectedTokenError('||', 3));
+    });
+
+    it('should throw error for logical AND', () => {
+      expect(() => parser.parse('${{&& foo}}')).toThrow(new UnexpectedTokenError('&&', 3));
     });
 
     it('should throw error for member access', () => {

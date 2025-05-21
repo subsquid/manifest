@@ -104,7 +104,7 @@ export class Tokenizer {
   }
 
   private binary(left: Token | undefined, precedence: number): Token | undefined {
-    return this.or(left, precedence) || this.access(left, precedence);
+    return this.access(left, precedence) || this.and(left, precedence) || this.or(left, precedence);
   }
 
   private or(left: Token | undefined, precedence: number): Token | undefined {
@@ -114,7 +114,7 @@ export class Tokenizer {
     const start = this.pos;
     this.pos += 2;
 
-    const right = this.next(OpType.Or + 1);
+    const right = this.next(OpType.Or);
     if (!right) throw this.unexpectedToken('||', start);
 
     return {
@@ -126,6 +126,25 @@ export class Tokenizer {
     };
   }
 
+  private and(left: Token | undefined, precedence: number): Token | undefined {
+    if (!this.match('&&') || precedence > OpType.And) return;
+    if (!left) throw this.unexpectedToken('&&', this.pos);
+
+    const start = this.pos;
+    this.pos += 2;
+
+    const right = this.next(OpType.And);
+    if (!right) throw this.unexpectedToken('&&', start);
+
+    return {
+      type: OpType.And,
+      eval: (ctx, path) => {
+        const leftValue = left.eval(ctx, path);
+        return isTrue(leftValue.value) ? right.eval(ctx, path) : leftValue;
+      },
+    };
+  }
+
   private access(left: Token | undefined, precedence: number): Token | undefined {
     if (!this.match('.') || precedence > OpType.MemberAccess) return;
     if (!left) throw this.unexpectedToken('.', this.pos);
@@ -133,7 +152,7 @@ export class Tokenizer {
     const start = this.pos;
     this.pos++;
 
-    const right = this.next(OpType.MemberAccess + 1);
+    const right = this.next(OpType.MemberAccess);
     if (!right) throw this.unexpectedToken('.', start);
 
     return {
@@ -172,9 +191,10 @@ export class Tokenizer {
 
   private string(): Token | undefined {
     if (!this.match("'")) return;
+
+    const start = this.pos;
     this.pos++;
 
-    let result = '';
     while (this.pos < this.str.length) {
       if (this.match("'")) {
         this.pos++;
@@ -182,14 +202,17 @@ export class Tokenizer {
           this.pos++;
           return {
             type: OpType.StringLiteral,
-            eval: (_, path) => ({ value: result, path }),
+            eval: (_, path) => ({
+              value: this.str.slice(start + 1, this.pos - 2).replace(/''/g, "'"),
+              path,
+            }),
           };
         }
       }
-      result += this.str[this.pos++];
+      this.pos++;
     }
 
-    throw this.unexpectedToken("'" + result, this.pos - result.length - 1);
+    throw this.unexpectedToken(this.str.slice(start, this.pos), start);
   }
 
   private id(): Token | undefined {
@@ -214,7 +237,7 @@ export class Tokenizer {
         if (ctx.hasOwnProperty(id)) {
           return { value: ctx[id], path: newPath };
         } else if (path.length === 0) {
-          throw new UndefinedVariableError(newPath);
+          throw new UndefinedVariableError([id]);
         }
         return { value: undefined, path: newPath };
       },
@@ -229,7 +252,7 @@ export class Tokenizer {
   }
 
   private match(expected: string): boolean {
-    return this.str.slice(this.pos, this.pos + expected.length) === expected;
+    return this.str.startsWith(expected, this.pos);
   }
 
   private isWhitespace(char: string): boolean {
