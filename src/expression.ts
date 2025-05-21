@@ -106,47 +106,53 @@ export class Tokenizer {
   }
 
   private next(precedence: number): Token | undefined {
-    let left = this.atom();
-    if (left === undefined) {
-      return undefined;
-    }
+    this.whitespace();
+    let res = this.unary();
 
     while (this.whitespace()) {
-      const start = this.pos;
-      const operator = this.operator();
-      if (!operator || operator.type < precedence) {
+      const token = this.binary(res, precedence);
+      if (!token) {
         break;
       }
-      const nextPrecedence = operator.associativity === 'left' ? operator.type + 1 : operator.type;
-      this.pos += operator.length;
-      const right = this.next(nextPrecedence);
-      if (right === undefined) {
-        throw this.unexpectedToken(this.str.slice(start, this.pos), start);
-      }
-      left = [operator.type, left, right] as Token;
+      res = token;
     }
 
-    return left;
+    return res;
   }
 
-  private operator() {
+  private binary(left: Token | undefined, precedence: number): Token | undefined {
+    const start = this.pos;
+
+    let operator: any;
     switch (this.str[this.pos]) {
-      case '|':
+      case '|': {
         if (this.str[this.pos + 1] === '|') {
-          return { type: OpType.Or, associativity: 'left', length: 2 };
+          this.pos += 2;
+          operator = { type: OpType.Or, precedence: OpType.Or + 1 };
         }
         break;
-      case '.':
-        return { type: OpType.MemberAccess, associativity: 'left', length: 1 };
-      default:
-        return undefined;
+      }
+      case '.': {
+        this.pos++;
+        operator = { type: OpType.MemberAccess, precedence: OpType.MemberAccess + 1 };
+        break;
+      }
     }
-
-    return undefined;
+    if (!operator || operator.type < precedence) {
+      this.pos = start;
+      return undefined;
+    }
+    if (!left) {
+      throw this.unexpectedToken(this.str.slice(start, this.pos), start);
+    }
+    const right = this.next(operator.precedence);
+    if (right === undefined) {
+      throw this.unexpectedToken(this.str.slice(start, this.pos), start);
+    }
+    return [operator.type, left, right] as Token;
   }
 
-  private atom(): Token | undefined {
-    this.whitespace();
+  private unary(): Token | undefined {
     return this.paren() || this.string() || this.id();
   }
 
