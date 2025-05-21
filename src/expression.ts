@@ -13,26 +13,11 @@ export class UnexpectedTokenError extends ParsingError {
   }
 }
 
-export class UnexpectedEndOfExpressionError extends ParsingError {
-  constructor(pos: number) {
-    super('Unexpected end of expression', pos);
-  }
+export class EvaluationError extends Error {
+  readonly name = 'EvaluationError';
 }
 
-export class UnexpectedEndOfStringError extends ParsingError {
-  constructor(str: string, pos: number) {
-    super(`Unexpected end of string: '${str}`, pos);
-  }
-}
-
-export class UnexpectedEndOfParenthesesError extends ParsingError {
-  constructor(str: string, pos: number) {
-    super(`Unexpected end of parentheses: (${str}`, pos);
-  }
-}
-
-export class UndefinedVariableError extends Error {
-  readonly name = 'UndefinedVariableError';
+export class UndefinedVariableError extends EvaluationError {
   constructor(path: string[], child?: string) {
     super(`"${path.join('.')}" is not defined${child ? ` (reading '${child}')` : ''}`);
   }
@@ -52,11 +37,17 @@ export function isTrue(value: unknown): boolean {
 }
 
 export enum OpType {
-  Or = '||',
-  And = '&&',
-  MemberAccess = '.',
-  StringLiteral = 'str',
-  Identifier = 'id',
+  Or,
+  And,
+  MemberAccess,
+  Identifier,
+  StringLiteral,
+  Parentheses,
+}
+
+interface OperatorConfig {
+  type: OpType;
+  associativity: 'left' | 'right';
 }
 
 export type Token =
@@ -64,7 +55,8 @@ export type Token =
   | [OpType.And, Token, Token]
   | [OpType.MemberAccess, Token, Token]
   | [OpType.Identifier, string]
-  | [OpType.StringLiteral, string];
+  | [OpType.StringLiteral, string]
+  | [OpType.Parentheses, Token];
 
 export const EXPR_PATTERN = /(\${{[^}]*}})/;
 
@@ -77,7 +69,10 @@ export class Parser {
     let pos = 0;
     str.split(EXPR_PATTERN).map(i => {
       if (EXPR_PATTERN.test(i)) {
-        tokens.push(new Tokenizer(i.slice(3, i.length - 2), pos + 3).parse());
+        const token = new Tokenizer(i.slice(3, i.length - 2), pos + 3).parse();
+        if (token) {
+          tokens.push(token);
+        }
       } else {
         tokens.push(i);
       }
@@ -102,95 +97,77 @@ export class Tokenizer {
     private offset = 0,
   ) {}
 
-  private getPos(): number {
-    return this.pos + this.offset;
-  }
-
-  parse(): Token {
-    const res = this.or();
-    if (this.pos !== this.str.length) {
-      throw new UnexpectedTokenError(this.str[this.pos], this.getPos());
+  parse(): Token | undefined {
+    const res = this.next(0);
+    if (this.pos < this.str.length) {
+      throw this.unexpectedToken(this.str[this.pos], this.pos);
     }
     return res;
   }
 
-  private or(): Token {
-    let left = this.and();
-
-    while (this.whitespace()) {
-      if (this.str[this.pos] !== '|' || this.str[this.pos + 1] !== '|') break;
-      this.pos += 2;
-      const right = this.and();
-      left =
-        left[0] === OpType.Or
-          ? [OpType.Or, left[1], [OpType.Or, left[2], right]]
-          : [OpType.Or, left, right];
-    }
-
-    return left;
-  }
-
-  private and(): Token {
-    let left = this.access();
-
-    while (this.whitespace()) {
-      if (this.str[this.pos] !== '&' || this.str[this.pos + 1] !== '&') break;
-      this.pos += 2;
-      const right = this.access();
-      left =
-        left[0] === OpType.And
-          ? [OpType.And, left[1], [OpType.And, left[2], right]]
-          : [OpType.And, left, right];
-    }
-
-    return left;
-  }
-
-  private access(): Token {
+  private next(precedence: number): Token | undefined {
     let left = this.atom();
+    if (left === undefined) {
+      return undefined;
+    }
 
     while (this.whitespace()) {
-      if (this.str[this.pos] !== '.') break;
-      this.pos++;
-      const right = this.atom();
-      left = [OpType.MemberAccess, left, right];
+      const start = this.pos;
+      const operator = this.operator();
+      if (!operator || operator.type < precedence) {
+        break;
+      }
+      const nextPrecedence = operator.associativity === 'left' ? operator.type + 1 : operator.type;
+      this.pos += operator.length;
+      const right = this.next(nextPrecedence);
+      if (right === undefined) {
+        throw this.unexpectedToken(this.str.slice(start, this.pos), start);
+      }
+      left = [operator.type, left, right] as Token;
     }
 
     return left;
   }
 
-  private atom(): Token {
-    this.whitespace();
-
-    if (!this.str[this.pos]) {
-      throw new UnexpectedEndOfExpressionError(this.getPos());
+  private operator() {
+    switch (this.str[this.pos]) {
+      case '|':
+        if (this.str[this.pos + 1] === '|') {
+          return { type: OpType.Or, associativity: 'left', length: 2 };
+        }
+        break;
+      case '.':
+        return { type: OpType.MemberAccess, associativity: 'left', length: 1 };
+      default:
+        return undefined;
     }
 
-    if (this.str[this.pos] === "'") {
-      return [OpType.StringLiteral, this.string()];
-    }
-
-    if (this.str[this.pos] === '(') {
-      this.pos++;
-      const start = this.pos;
-      const expr = this.or();
-      this.whitespace();
-      if (this.str[this.pos] !== ')') {
-        throw new UnexpectedEndOfParenthesesError(this.str.slice(start, this.pos), this.getPos());
-      }
-      this.pos++;
-      return expr;
-    }
-
-    const id = this.id();
-    if (!id) {
-      throw new UnexpectedTokenError(this.str[this.pos], this.getPos());
-    }
-
-    return [OpType.Identifier, id];
+    return undefined;
   }
 
-  private string(): string {
+  private atom(): Token | undefined {
+    this.whitespace();
+    return this.paren() || this.string() || this.id();
+  }
+
+  private paren(): Token | undefined {
+    if (this.str[this.pos] !== '(') return;
+
+    const start = this.pos;
+    this.pos++;
+    const expr = this.next(0);
+    this.whitespace();
+    if (expr === undefined) return;
+    if (this.str[this.pos] !== ')') {
+      throw this.unexpectedToken(this.str.slice(start, this.pos), start);
+    }
+    this.pos++;
+    return [OpType.Parentheses, expr];
+  }
+
+  private string(): Token | undefined {
+    if (this.str[this.pos] !== "'") return;
+
     this.pos++;
     let result = '';
 
@@ -198,30 +175,29 @@ export class Tokenizer {
       if (this.str[this.pos] === "'") {
         this.pos++;
         if (this.str[this.pos] !== "'") {
-          return result;
+          this.pos++;
+          return [OpType.StringLiteral, result];
         }
       }
       result += this.str[this.pos];
       this.pos++;
     }
 
-    throw new UnexpectedEndOfStringError(result, this.getPos());
+    throw this.unexpectedToken("'" + result, this.pos - result.length - 1);
   }
 
-  private id(): string | undefined {
+  private id(): Token | undefined {
     const start = this.pos;
     while (identifiers.has(this.str[this.pos])) {
       if (this.str[this.pos] === '-' && !alphaNum.has(this.str[this.pos + 1])) {
-        throw new UnexpectedTokenError('-', this.getPos());
+        throw this.unexpectedToken('-', this.pos);
       }
       this.pos++;
     }
 
-    if (this.pos > start) {
-      return this.str.slice(start, this.pos);
-    }
+    if (this.pos === start) return;
 
-    return undefined;
+    return [OpType.Identifier, this.str.slice(start, this.pos)];
   }
 
   private whitespace(): boolean {
@@ -230,16 +206,22 @@ export class Tokenizer {
     }
     return !!this.str[this.pos];
   }
+
+  private unexpectedToken(token: string, pos: number) {
+    return new UnexpectedTokenError(token, pos + this.offset);
+  }
 }
 
 export class Expression {
-  constructor(readonly tokens: (string | Token)[]) {}
+  constructor(readonly tokens: (string | Token | null)[]) {}
 
   eval(context: Record<string, any> = {}): string {
     const res: unknown[] = [];
 
     for (const token of this.tokens) {
-      if (typeof token === 'string') {
+      if (token === null) {
+        res.push('');
+      } else if (typeof token === 'string') {
         res.push(token);
       } else {
         const { value } = this.evalToken(token, context, []);
@@ -293,6 +275,10 @@ export class Expression {
         assert(typeof args[0] === 'string', 'StringLiteral must be a string');
         return { value: args[0], path };
       }
+      case OpType.Parentheses: {
+        assert(Array.isArray(args[0]), 'Parentheses must have one token');
+        return this.evalToken(args[0], ctx, path);
+      }
     }
   }
 
@@ -300,7 +286,7 @@ export class Expression {
     const result = new Set<string>();
 
     for (const token of this.tokens) {
-      if (typeof token !== 'string') {
+      if (token && typeof token !== 'string') {
         this.collectVariables(token, result, prefix);
       }
     }

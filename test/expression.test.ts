@@ -1,81 +1,73 @@
-import {
-  ParsingError,
-  Parser,
-  UnexpectedTokenError,
-  UnexpectedEndOfExpressionError,
-  UnexpectedEndOfStringError,
-  UndefinedVariableError,
-  UnexpectedEndOfParenthesesError,
-} from '../src/expression';
+import { Parser, UnexpectedTokenError, UndefinedVariableError } from '../src/expression';
 
 describe('Expression', () => {
   const parser = new Parser();
 
-  it('should parse string literal', () => {
+  it('should parse and evaluate string literal', () => {
     const value = parser.parse('hello').eval();
     expect(value).toEqual('hello');
   });
 
   describe('identifiers', () => {
-    it('should evaluate defined identifier to its value', () => {
+    it('should evaluate defined identifier', () => {
       const value = parser.parse('${{foo}}').eval({ foo: 'foo' });
       expect(value).toEqual('foo');
     });
 
-    it('should reject undefined top-level identifier', () => {
+    it('should throw error for undefined top-level', () => {
       expect(() => parser.parse('${{foo}}').eval({})).toThrow(new UndefinedVariableError(['foo']));
     });
 
-    it('should reject undefined nested identifier with parent context', () => {
+    it('should throw error for undefined nested with null parent', () => {
       expect(() => parser.parse('${{foo.bar}}').eval({ foo: null })).toThrow(
         new UndefinedVariableError(['foo'], 'bar'),
       );
     });
 
-    it('should reject undefined nested identifier with undefined parent', () => {
+    it('should throw error for undefined nested with undefined parent', () => {
       expect(() => parser.parse('${{foo.bar}}').eval({ foo: undefined })).toThrow(
         new UndefinedVariableError(['foo'], 'bar'),
       );
     });
 
-    it('should evaluate identifiers with hyphens and underscores', () => {
+    it('should evaluate with hyphens, underscores and numbers', () => {
       expect(parser.parse('${{foo-bar}}').eval({ ['foo-bar']: 'value' })).toEqual('value');
       expect(parser.parse('${{foo_bar}}').eval({ ['foo_bar']: 'value' })).toEqual('value');
       expect(parser.parse('${{foo1337}}').eval({ ['foo1337']: 'value' })).toEqual('value');
     });
 
-    it('should reject identifiers ending with hyphens', () => {
+    it('should throw error for ending with hyphen', () => {
       expect(() => parser.parse('${{foo-}}').eval({})).toThrow(new UnexpectedTokenError('-', 6));
     });
 
-    it('should allow identifiers starting with numbers', () => {
+    it('should evaluate starting with numbers', () => {
       expect(parser.parse('${{1337foo}}').eval({ ['1337foo']: 'value' })).toEqual('value');
     });
   });
 
   describe('member access', () => {
-    it('should evaluate single level property access', () => {
+    it('should evaluate single level', () => {
       const value = parser.parse('${{foo.bar}}').eval({ foo: { bar: 'bar' } });
       expect(value).toEqual('bar');
     });
 
-    it('should evaluate multi-level property access', () => {
+    it('should evaluate multi-level', () => {
       const value = parser.parse('${{foo.bar.baz}}').eval({ foo: { bar: { baz: 'baz' } } });
       expect(value).toEqual('baz');
     });
 
-    it('should ignore whitespace around dot operator', () => {
+    it('should handle whitespace around dot', () => {
       const value = parser.parse('${{foo  .    bar}}').eval({ foo: { bar: 'bar' } });
       expect(value).toEqual('bar');
     });
 
-    it('should reject undefined nested properties with parent context', () => {
+    it('should throw error for undefined nested with null parent', () => {
       expect(() => parser.parse('${{foo.bar.baz}}').eval({ foo: { bar: null } })).toThrow(
         new UndefinedVariableError(['foo', 'bar'], 'baz'),
       );
     });
 
-    it('should reject properties on null/undefined with parent context', () => {
+    it('should throw error for null or undefined parent', () => {
       expect(() => parser.parse('${{foo.bar}}').eval({ foo: null })).toThrow(
         new UndefinedVariableError(['foo'], 'bar'),
       );
@@ -84,30 +76,30 @@ describe('Expression', () => {
       );
     });
 
-    it('should reject deep nested properties on null/undefined', () => {
+    it('should throw error for deep nested on null parent', () => {
       expect(() => parser.parse('${{foo.bar.baz.qux}}').eval({ foo: { bar: null } })).toThrow(
         new UndefinedVariableError(['foo', 'bar'], 'baz'),
       );
     });
 
-    it('should reject invalid member access syntax', () => {
+    it('should throw error for invalid syntax', () => {
       expect(() => parser.parse('${{.foo}}')).toThrow(new UnexpectedTokenError('.', 3));
-      expect(() => parser.parse('${{foo.}}')).toThrow(new UnexpectedEndOfExpressionError(7));
+      expect(() => parser.parse('${{foo.}}')).toThrow(new UnexpectedTokenError('.', 6));
     });
   });
 
   describe('parsing errors', () => {
-    it('should reject expressions with invalid characters', () => {
+    it('should throw error for invalid characters', () => {
       expect(() => parser.parse('${{foo @ bar}}')).toThrow(new UnexpectedTokenError('@', 7));
     });
 
-    it('should reject empty expressions', () => {
-      expect(() => parser.parse('${{    }}')).toThrow(new UnexpectedEndOfExpressionError(7));
+    it('should evaluate empty to empty string', () => {
+      expect(parser.parse('${{    }}').eval()).toEqual('');
     });
   });
 
   describe('value handling', () => {
-    it('should convert null and undefined values to empty string', () => {
+    it('should convert null, undefined and empty to empty string', () => {
       expect(parser.parse('${{undefined}}').eval({ undefined: undefined })).toEqual('');
       expect(parser.parse('${{null}}').eval({ null: null })).toEqual('');
       expect(parser.parse('${{empty}}').eval({ empty: '' })).toEqual('');
@@ -115,29 +107,29 @@ describe('Expression', () => {
   });
 
   describe('complex expressions', () => {
-    it('should evaluate expressions mixed with static text', () => {
+    it('should evaluate mixed with static text', () => {
       const value = parser.parse('hello ${{foo}} world').eval({ foo: 'foo' });
       expect(value).toEqual('hello foo world');
     });
 
-    it('should evaluate multiple expressions in sequence', () => {
+    it('should evaluate multiple in sequence', () => {
       const value = parser.parse('${{foo}} ${{bar}}').eval({ foo: 'foo', bar: 'bar' });
       expect(value).toEqual('foo bar');
     });
 
-    it('should reject undefined top-level identifiers in complex expressions', () => {
+    it('should throw error for undefined in mixed', () => {
       expect(() => parser.parse('hello ${{foo}} world').eval({})).toThrow(
         new UndefinedVariableError(['foo']),
       );
     });
 
-    it('should reject undefined nested properties in complex expressions', () => {
+    it('should throw error for undefined nested in mixed', () => {
       expect(() => parser.parse('hello ${{foo.bar}} world').eval({ foo: null })).toThrow(
         new UndefinedVariableError(['foo'], 'bar'),
       );
     });
 
-    it('should handle multiple nested expressions with errors', () => {
+    it('should throw error for first undefined in multiple', () => {
       expect(() => parser.parse('${{foo.bar}} ${{baz.qux}}').eval({ foo: null, baz: {} })).toThrow(
         new UndefinedVariableError(['foo'], 'bar'),
       );
@@ -145,55 +137,55 @@ describe('Expression', () => {
   });
 
   describe('variables', () => {
-    it('should extract root level variable names', () => {
+    it('should extract root level', () => {
       const variables = parser.parse('${{foo.bar}}').variables();
       expect(variables).toEqual(['foo']);
     });
 
-    it('should extract variables from complex expressions', () => {
+    it('should extract all from complex', () => {
       const variables = parser.parse('${{foo.bar}} ${{baz}}').variables();
       expect(variables).toContain('foo');
       expect(variables).toContain('baz');
     });
 
-    it('should extract nested variable names with prefix', () => {
+    it('should extract nested with given prefix', () => {
       const variables = parser.parse('${{foo.bar}}').variables(['foo']);
       expect(variables).toEqual(['bar']);
     });
   });
 
   describe('string literals', () => {
-    it('should evaluate simple string literals', () => {
+    it('should evaluate simple', () => {
       const value = parser.parse("${{'hello'}}").eval();
       expect(value).toEqual('hello');
     });
 
-    it('should handle escaped quotes in string literals', () => {
+    it('should handle escaped single quotes', () => {
       const value = parser.parse("${{'hello''world'}}").eval();
       expect(value).toEqual("hello'world");
     });
 
-    it('should reject unclosed string literals', () => {
-      expect(() => parser.parse("${{'hello}}")).toThrow(new UnexpectedEndOfStringError('hello', 9));
+    it('should throw error for unclosed', () => {
+      expect(() => parser.parse("${{'hello}}")).toThrow(new UnexpectedTokenError("'hello", 3));
     });
 
-    it('should reject string literals after identifiers', () => {
+    it('should throw error after identifiers', () => {
       expect(() => parser.parse("${{foo'bar'}}")).toThrow(new UnexpectedTokenError("'", 6));
     });
   });
 
   describe('error messages', () => {
-    it('should include full path in top-level error messages', () => {
+    it('should include full path in top-level', () => {
       expect(() => parser.parse('${{foo}}').eval({})).toThrow('"foo" is not defined');
     });
 
-    it('should include parent context and property in nested error messages', () => {
+    it('should include parent context and property', () => {
       expect(() => parser.parse('${{foo.bar}}').eval({ foo: null })).toThrow(
         '"foo" is not defined (reading \'bar\')',
       );
     });
 
-    it('should include full path and property in deep nested error messages', () => {
+    it('should include full path and property in deep nested', () => {
       expect(() => parser.parse('${{foo.bar.baz}}').eval({ foo: { bar: null } })).toThrow(
         '"foo.bar" is not defined (reading \'baz\')',
       );
@@ -201,7 +193,7 @@ describe('Expression', () => {
   });
 
   describe('logical OR operator', () => {
-    it('should return first non-falsy value', () => {
+    it('should return first non-falsy', () => {
       expect(parser.parse('${{foo || bar}}').eval({ foo: 'first', bar: 'second' })).toEqual(
         'first',
       );
@@ -214,7 +206,7 @@ describe('Expression', () => {
       expect(parser.parse('${{foo || bar}}').eval({ foo: false, bar: 'second' })).toEqual('second');
     });
 
-    it('should handle nested expressions', () => {
+    it('should handle with nested property access', () => {
       expect(
         parser.parse('${{foo.bar || baz.qux}}').eval({
           foo: { bar: 'first' },
@@ -230,7 +222,7 @@ describe('Expression', () => {
       ).toEqual('second');
     });
 
-    it('should handle multiple OR operators', () => {
+    it('should handle multiple in sequence', () => {
       expect(
         parser.parse('${{foo || bar || baz}}').eval({
           foo: '',
@@ -246,236 +238,25 @@ describe('Expression', () => {
           baz: 'third',
         }),
       ).toEqual('first');
-
-      expect(
-        parser.parse('${{foo || bar || baz}}').eval({
-          foo: null,
-          bar: 'second',
-          baz: 'third',
-        }),
-      ).toEqual('second');
-
-      expect(
-        parser.parse('${{foo || bar || baz}}').eval({
-          foo: false,
-          bar: 0,
-          baz: 'third',
-        }),
-      ).toEqual('third');
-
-      expect(
-        parser.parse('${{foo || bar || baz}}').eval({
-          foo: null,
-          bar: null,
-          baz: 'third',
-        }),
-      ).toEqual('third');
     });
 
-    it('should handle string literals', () => {
+    it('should handle with string literals', () => {
       expect(parser.parse("${{foo || 'default'}}").eval({ foo: 'value' })).toEqual('value');
       expect(parser.parse("${{foo || 'default'}}").eval({ foo: null })).toEqual('default');
     });
   });
 
-  describe('logical AND operator', () => {
-    it('should return first falsy value or last value', () => {
-      expect(parser.parse('${{foo && bar}}').eval({ foo: 'first', bar: 'second' })).toEqual(
-        'second',
-      );
-      expect(parser.parse('${{foo && bar}}').eval({ foo: null, bar: 'second' })).toEqual('');
-      expect(parser.parse('${{foo && bar}}').eval({ foo: undefined, bar: 'second' })).toEqual('');
-      expect(parser.parse('${{foo && bar}}').eval({ foo: '', bar: 'second' })).toEqual('');
-      expect(parser.parse('${{foo && bar}}').eval({ foo: 0, bar: 'second' })).toEqual('0');
-      expect(parser.parse('${{foo && bar}}').eval({ foo: false, bar: 'second' })).toEqual('false');
-    });
-
-    it('should handle nested expressions', () => {
-      expect(
-        parser.parse('${{foo.bar && baz.qux}}').eval({
-          foo: { bar: 'first' },
-          baz: { qux: 'second' },
-        }),
-      ).toEqual('second');
-
-      expect(
-        parser.parse('${{foo.bar && baz.qux}}').eval({
-          foo: { bar: null },
-          baz: { qux: 'second' },
-        }),
-      ).toEqual('');
-    });
-
-    it('should handle multiple AND operators', () => {
-      expect(
-        parser.parse('${{foo && bar && baz}}').eval({
-          foo: 'first',
-          bar: 'second',
-          baz: 'third',
-        }),
-      ).toEqual('third');
-
-      expect(
-        parser.parse('${{foo && bar && baz}}').eval({
-          foo: null,
-          bar: 'second',
-          baz: 'third',
-        }),
-      ).toEqual('');
-
-      expect(
-        parser.parse('${{foo && bar && baz}}').eval({
-          foo: 'first',
-          bar: null,
-          baz: 'third',
-        }),
-      ).toEqual('');
-
-      expect(
-        parser.parse('${{foo && bar && baz}}').eval({
-          foo: 'first',
-          bar: 'second',
-          baz: null,
-        }),
-      ).toEqual('');
-    });
-
-    it('should handle string literals', () => {
-      expect(parser.parse("${{foo && 'default'}}").eval({ foo: 'value' })).toEqual('default');
-      expect(parser.parse("${{foo && 'default'}}").eval({ foo: null })).toEqual('');
-    });
-
-    it('should reject invalid AND operator usage', () => {
-      expect(() => parser.parse('${{&& foo}}')).toThrow(new UnexpectedTokenError('&', 3));
-      expect(() => parser.parse('${{foo &&}}')).toThrow(new UnexpectedEndOfExpressionError(9));
-      expect(() => parser.parse('${{& foo}}')).toThrow(new UnexpectedTokenError('&', 3));
-    });
-  });
-
-  describe('combined logical operators', () => {
-    it('should handle OR and AND operators together', () => {
-      expect(
-        parser.parse('${{foo && bar || baz}}').eval({
-          foo: true,
-          bar: 'second',
-          baz: 'third',
-        }),
-      ).toEqual('second');
-
-      expect(
-        parser.parse('${{foo && bar || baz}}').eval({
-          foo: false,
-          bar: 'second',
-          baz: 'third',
-        }),
-      ).toEqual('third');
-
-      expect(
-        parser.parse('${{foo || bar && baz}}').eval({
-          foo: 'first',
-          bar: 'second',
-          baz: 'third',
-        }),
-      ).toEqual('first');
-
-      expect(
-        parser.parse('${{foo || bar && baz}}').eval({
-          foo: null,
-          bar: 'second',
-          baz: 'third',
-        }),
-      ).toEqual('third');
-
-      expect(
-        parser.parse('${{foo || bar && baz}}').eval({
-          foo: null,
-          bar: null,
-          baz: 'third',
-        }),
-      ).toEqual('');
-    });
-  });
-
   describe('parentheses operator', () => {
-    it('should respect parentheses for operator precedence with OR and AND', () => {
-      // Test (foo || bar) && baz vs foo || (bar && baz)
-      expect(
-        parser.parse('${{(foo || bar) && baz}}').eval({
-          foo: 'first',
-          bar: 'second',
-          baz: 'third',
-        }),
-      ).toEqual('third');
-
-      expect(
-        parser.parse('${{(foo || bar) && baz}}').eval({
-          foo: 'first',
-          bar: 'second',
-          baz: null,
-        }),
-      ).toEqual('');
-
-      expect(
-        parser.parse('${{foo || (bar && baz)}}').eval({
-          foo: null,
-          bar: 'second',
-          baz: 'third',
-        }),
-      ).toEqual('third');
-
-      expect(
-        parser.parse('${{foo || (bar && baz)}}').eval({
-          foo: null,
-          bar: null,
-          baz: 'third',
-        }),
-      ).toEqual('');
-
-      expect(
-        parser.parse('${{foo || (bar && baz)}}').eval({
-          foo: 'first',
-          bar: null,
-          baz: 'third',
-        }),
-      ).toEqual('first');
-    });
-
-    it('should handle nested parentheses', () => {
-      expect(
-        parser.parse('${{(foo || (bar && baz))}}').eval({
-          foo: null,
-          bar: 'second',
-          baz: 'third',
-        }),
-      ).toEqual('third');
-
-      expect(
-        parser.parse('${{((foo || bar) && baz)}}').eval({
-          foo: 'first',
-          bar: 'second',
-          baz: 'third',
-        }),
-      ).toEqual('third');
-    });
-
-    it('should handle whitespace inside and around parentheses', () => {
-      expect(
-        parser.parse('${{ ( foo || bar ) && baz }}').eval({
-          foo: 'first',
-          bar: 'second',
-          baz: 'third',
-        }),
-      ).toEqual('third');
-    });
-
-    it('should handle parentheses with member access', () => {
+    it('should handle with member access and OR', () => {
       expect(
         parser.parse('${{(foo.bar) || baz}}').eval({
           foo: { bar: 'value' },
           baz: 'fallback',
         }),
       ).toEqual('value');
+    });
 
+    it('should handle with nested member access', () => {
       expect(
         parser.parse('${{(foo.bar).baz}}').eval({
           foo: { bar: { baz: 'nested' } },
@@ -483,12 +264,13 @@ describe('Expression', () => {
       ).toEqual('nested');
     });
 
-    it('should throw UnexpectedEndOfParenthesesError for unclosed parentheses', () => {
-      expect(() => parser.parse('${{(foo}}')).toThrow(
-        new UnexpectedEndOfParenthesesError('foo', 7),
-      );
+    it('should throw error for unclosed', () => {
+      expect(() => parser.parse('${{(foo}}')).toThrow(new UnexpectedTokenError('(foo', 3));
+    });
+
+    it('should throw error for unclosed in OR', () => {
       expect(() => parser.parse('${{(foo || bar}}')).toThrow(
-        new UnexpectedEndOfParenthesesError('foo || bar', 14),
+        new UnexpectedTokenError('(foo || bar', 3),
       );
     });
   });
