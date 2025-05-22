@@ -1,4 +1,9 @@
-import { Parser, UnexpectedTokenError, UndefinedVariableError } from '../src/expression';
+import {
+  Parser,
+  UnexpectedTokenError,
+  UndefinedVariableError,
+  ExpressionNotResolvedError,
+} from '../src/expression';
 
 describe('Expression Parser', () => {
   const parser = new Parser();
@@ -94,10 +99,18 @@ describe('Expression Parser', () => {
     });
 
     it('should not access built-in properties', () => {
-      expect(parser.parse('${{foo.toString}}').eval({ foo: 'bar' })).toEqual('');
-      expect(parser.parse('${{foo.valueOf}}').eval({ foo: 123 })).toEqual('');
-      expect(parser.parse('${{foo.prototype}}').eval({ foo: {} })).toEqual('');
-      expect(parser.parse('${{foo.constructor}}').eval({ foo: {} })).toEqual('');
+      expect(() => parser.parse('${{foo.toString}}').eval({ foo: 'bar' })).toThrow(
+        new ExpressionNotResolvedError('${{foo.toString}}'),
+      );
+      expect(() => parser.parse('${{foo.valueOf}}').eval({ foo: 123 })).toThrow(
+        new ExpressionNotResolvedError('${{foo.valueOf}}'),
+      );
+      expect(() => parser.parse('${{foo.prototype}}').eval({ foo: {} })).toThrow(
+        new ExpressionNotResolvedError('${{foo.prototype}}'),
+      );
+      expect(() => parser.parse('${{foo.constructor}}').eval({ foo: {} })).toThrow(
+        new ExpressionNotResolvedError('${{foo.constructor}}'),
+      );
     });
 
     it('should access properties if explicitly passed', () => {
@@ -119,14 +132,14 @@ describe('Expression Parser', () => {
         }),
       ).toEqual('second');
 
-      expect(
+      expect(() =>
         parser.parse('${{foo.bar && foo.baz}}').eval({
           foo: {
             bar: null,
             baz: 'second',
           },
         }),
-      ).toEqual('');
+      ).toThrow(new ExpressionNotResolvedError('${{foo.bar && foo.baz}}'));
     });
   });
 
@@ -151,9 +164,16 @@ describe('Expression Parser', () => {
   });
 
   describe('Value handling', () => {
-    it('should convert null, undefined and empty to empty string', () => {
-      expect(parser.parse('${{undefined}}').eval({ undefined: undefined })).toEqual('');
-      expect(parser.parse('${{null}}').eval({ null: null })).toEqual('');
+    it('should throw error for null, undefined and empty', () => {
+      expect(() => parser.parse('${{undefined}}').eval({ undefined: undefined })).toThrow(
+        new ExpressionNotResolvedError('${{undefined}}'),
+      );
+      expect(() => parser.parse('${{null}}').eval({ null: null })).toThrow(
+        new ExpressionNotResolvedError('${{null}}'),
+      );
+    });
+
+    it('should not throw for empty string', () => {
       expect(parser.parse('${{empty}}').eval({ empty: '' })).toEqual('');
     });
 
@@ -264,8 +284,12 @@ describe('Expression Parser', () => {
       });
 
       it('should return first value if it is falsy', () => {
-        expect(parser.parse('${{foo && bar}}').eval({ foo: null, bar: 'second' })).toEqual('');
-        expect(parser.parse('${{foo && bar}}').eval({ foo: undefined, bar: 'second' })).toEqual('');
+        expect(() => parser.parse('${{foo && bar}}').eval({ foo: null, bar: 'second' })).toThrow(
+          new ExpressionNotResolvedError('${{foo && bar}}'),
+        );
+        expect(() =>
+          parser.parse('${{foo && bar}}').eval({ foo: undefined, bar: 'second' }),
+        ).toThrow(new ExpressionNotResolvedError('${{foo && bar}}'));
         expect(parser.parse('${{foo && bar}}').eval({ foo: '', bar: 'second' })).toEqual('');
         expect(parser.parse('${{foo && bar}}').eval({ foo: 0, bar: 'second' })).toEqual('0');
         expect(parser.parse('${{foo && bar}}').eval({ foo: false, bar: 'second' })).toEqual(
@@ -281,12 +305,12 @@ describe('Expression Parser', () => {
           }),
         ).toEqual('second');
 
-        expect(
+        expect(() =>
           parser.parse('${{foo.bar && baz.qux}}').eval({
             foo: { bar: null },
             baz: { qux: 'second' },
           }),
-        ).toEqual('');
+        ).toThrow(new ExpressionNotResolvedError('${{foo.bar && baz.qux}}'));
       });
 
       it('should handle multiple in sequence', () => {
