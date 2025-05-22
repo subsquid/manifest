@@ -156,24 +156,6 @@ export class Manifest {
     return [...new Set(result)];
   }
 
-  private findVariablesInExpression(str: string, prefix: string[]): string[] {
-    if (!str) return [];
-
-    const result: string[] = [];
-
-    for (const match of str.matchAll(EXPR_PATTERN)) {
-      const index = match.index || 0;
-      const expr = match[1];
-      // Calculate the start and end positions of the expression content (excluding ${{ and }})
-      const startPos = index + 3;
-      const endPos = index + expr.length - 2;
-      const expression = parser.parse(str, startPos, endPos);
-      result.push(...expression.variables(prefix));
-    }
-
-    return result;
-  }
-
   static validate(value: Partial<ManifestValue>, options: ManifestParsingOptions = {}) {
     const res = manifestSchema.validate(value, {
       allowUnknown: options.validation?.allowUnknown,
