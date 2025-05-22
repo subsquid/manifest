@@ -76,19 +76,29 @@ export enum OpType {
   Parentheses,
 }
 
-const operators: Record<
-  OpType,
-  {
-    create: (...args: any[]) => Token;
-    eval: (token: Token, ctx: any, path: string[]) => { value: unknown; path: string[] };
-  }
-> = {
+export type OpConfig<T extends Token> = {
+  parse: (tokenizer: Tokenizer, precedence: number, left?: Token) => Token | undefined;
+  eval: (token: T, ctx: any, path: string[]) => { value: unknown; path: string[] };
+  variables: (prefix: string[]) => string[];
+};
+
+const operators: Record<OpType, OpConfig<Token>> = {
   [OpType.Or]: {
-    create: (left: Token, right: Token) =>
-      left[0] === OpType.Or
+    parse: (tokenizer: Tokenizer, precedence: number, left?: Token) => {
+      if (!tokenizer.match('||') || precedence > OpType.Or) return;
+      if (!left) throw tokenizer.unexpectedToken('||', tokenizer.pos);
+
+      const start = tokenizer.pos;
+      tokenizer.move(2);
+
+      const right = tokenizer.next(OpType.Or);
+      if (!right) throw tokenizer.unexpectedToken('||', start);
+
+      return left[0] === OpType.Or
         ? [OpType.Or, left[1], [OpType.Or, left[2], right]]
-        : [OpType.Or, left, right],
-    eval: (token: Token, ctx: any, path: string[]) => {
+        : [OpType.Or, left, right];
+    },
+    eval: (token, ctx, path) => {
       const [type, left, right] = token;
       assert(type === OpType.Or);
       const leftValue = operators[left[0]].eval(left, ctx, path);
@@ -96,11 +106,21 @@ const operators: Record<
     },
   },
   [OpType.And]: {
-    create: (left: Token, right: Token) =>
-      left[0] === OpType.And
+    parse: (tokenizer: Tokenizer, precedence: number, left?: Token) => {
+      if (!tokenizer.match('&&') || precedence > OpType.And) return;
+      if (!left) throw tokenizer.unexpectedToken('&&', tokenizer.pos);
+
+      const start = tokenizer.pos;
+      tokenizer.move(2);
+
+      const right = tokenizer.next(OpType.And);
+      if (!right) throw tokenizer.unexpectedToken('&&', start);
+
+      return left[0] === OpType.And
         ? [OpType.And, left[1], [OpType.And, left[2], right]]
-        : [OpType.And, left, right],
-    eval: (token: Token, ctx: any, path: string[]) => {
+        : [OpType.And, left, right];
+    },
+    eval: (token, ctx, path) => {
       const [type, left, right] = token;
       assert(type === OpType.And);
       const leftValue = operators[left[0]].eval(left, ctx, path);
@@ -108,8 +128,19 @@ const operators: Record<
     },
   },
   [OpType.MemberAccess]: {
-    create: (left: Token, right: Token) => [OpType.MemberAccess, left, right],
-    eval: (token: Token, ctx: any, path: string[]) => {
+    parse: (tokenizer: Tokenizer, precedence: number, left?: Token) => {
+      if (!tokenizer.match('.') || precedence > OpType.MemberAccess) return;
+      if (!left) throw tokenizer.unexpectedToken('.', tokenizer.pos);
+
+      const start = tokenizer.pos;
+      tokenizer.move(1);
+
+      const right = tokenizer.next(OpType.MemberAccess);
+      if (!right) throw tokenizer.unexpectedToken('.', start);
+
+      return [OpType.MemberAccess, left, right];
+    },
+    eval: (token, ctx, path) => {
       const [type, left, right] = token;
       assert(type === OpType.MemberAccess);
       const leftValue = operators[left[0]].eval(left, ctx, path);
@@ -117,8 +148,20 @@ const operators: Record<
     },
   },
   [OpType.Identifier]: {
-    create: (id: string) => [OpType.Identifier, id],
-    eval: (token: Token, ctx: any, path: string[]) => {
+    parse: (tokenizer: Tokenizer, precedence: number) => {
+      const start = tokenizer.pos;
+      while (isIdentifierChar(tokenizer.str[tokenizer.pos])) {
+        if (tokenizer.str[tokenizer.pos] === '-' && !isAlphaNum(tokenizer.str[tokenizer.pos + 1])) {
+          throw tokenizer.unexpectedToken('-', tokenizer.pos);
+        }
+        tokenizer.move(1);
+      }
+      if (tokenizer.pos === start) return;
+
+      const id = tokenizer.slice(start);
+      return [OpType.Identifier, id];
+    },
+    eval: (token, ctx, path) => {
       const [type, id] = token;
       assert(type === OpType.Identifier);
 
@@ -138,16 +181,50 @@ const operators: Record<
     },
   },
   [OpType.StringLiteral]: {
-    create: (str: string) => [OpType.StringLiteral, str],
-    eval: (token: Token, _: any, path: string[]) => {
+    parse: (tokenizer: Tokenizer, precedence: number) => {
+      if (!tokenizer.match("'")) return;
+
+      const start = tokenizer.pos;
+      tokenizer.move(1);
+
+      while (tokenizer.pos < tokenizer.str.length) {
+        if (tokenizer.match("'")) {
+          tokenizer.move(1);
+          if (!tokenizer.match("'")) {
+            const value = tokenizer.slice(start + 1, tokenizer.pos - 1).replace(/''/g, "'");
+            return [OpType.StringLiteral, value];
+          }
+        }
+        tokenizer.move(1);
+      }
+
+      throw tokenizer.unexpectedToken(tokenizer.slice(start), start);
+    },
+    eval: token => {
       const [type, str] = token;
       assert(type === OpType.StringLiteral);
-      return { value: str, path };
+      return { value: str, path: [] };
     },
   },
   [OpType.Parentheses]: {
-    create: (expr: Token) => [OpType.Parentheses, expr],
-    eval: (token: Token, ctx: any, path: string[]) => {
+    parse: (tokenizer: Tokenizer, precedence: number) => {
+      if (!tokenizer.match('(')) return;
+
+      const start = tokenizer.pos;
+      tokenizer.move(1);
+
+      const expr = tokenizer.next(0);
+      tokenizer.whitespace();
+
+      if (!expr) return;
+      if (!tokenizer.match(')')) {
+        throw tokenizer.unexpectedToken(tokenizer.slice(start), start);
+      }
+
+      tokenizer.move(1);
+      return [OpType.Parentheses, expr];
+    },
+    eval: (token, ctx, path) => {
       const [type, expr] = token;
       assert(type === OpType.Parentheses);
       return operators[expr[0]].eval(expr, ctx, path);
@@ -178,9 +255,17 @@ export class Parser {
 
       const expr = match[1];
       if (expr && expr.length > 4) {
-        const token = new Tokenizer(expr.slice(3, expr.length - 2), index + 3).parse();
-        if (token) {
-          parts.push({ token, expr: match[1] });
+        const tokenizer = new Tokenizer(expr.slice(3, expr.length - 2), index + 3);
+        try {
+          const token = tokenizer.next(0, true);
+          if (token) {
+            parts.push({ token, expr: match[1] });
+          }
+        } catch (error) {
+          if (error instanceof ParsingError) {
+            throw error;
+          }
+          throw new ParsingError(String(error), index + 3);
         }
       }
 
@@ -196,22 +281,14 @@ export class Parser {
 }
 
 export class Tokenizer {
-  private pos = 0;
+  public pos = 0;
 
   constructor(
-    private str: string,
-    private offset = 0,
+    public str: string,
+    public offset = 0,
   ) {}
 
-  parse(): Token | undefined {
-    const res = this.next(0);
-    if (this.pos < this.str.length) {
-      throw this.unexpectedToken(this.str[this.pos], this.pos);
-    }
-    return res;
-  }
-
-  private next(precedence: number): Token | undefined {
+  next(precedence: number, consumeAll = false): Token | undefined {
     this.whitespace();
     let res = this.unary();
 
@@ -221,121 +298,50 @@ export class Tokenizer {
       res = token;
     }
 
+    if (consumeAll && this.pos < this.str.length) {
+      throw this.unexpectedToken(this.str[this.pos], this.pos);
+    }
+
     return res;
   }
 
-  private binary(left: Token | undefined, precedence: number): Token | undefined {
-    return this.access(left, precedence) || this.and(left, precedence) || this.or(left, precedence);
+  binary(left: Token | undefined, precedence: number): Token | undefined {
+    return (
+      operators[OpType.MemberAccess].parse(this, precedence, left) ||
+      operators[OpType.And].parse(this, precedence, left) ||
+      operators[OpType.Or].parse(this, precedence, left)
+    );
   }
 
-  private or(left: Token | undefined, precedence: number): Token | undefined {
-    if (!this.match('||') || precedence > OpType.Or) return;
-    if (!left) throw this.unexpectedToken('||', this.pos);
-
-    const start = this.pos;
-    this.pos += 2;
-
-    const right = this.next(OpType.Or);
-    if (!right) throw this.unexpectedToken('||', start);
-
-    return operators[OpType.Or].create(left, right);
+  unary(): Token | undefined {
+    return (
+      operators[OpType.Parentheses].parse(this, 0) ||
+      operators[OpType.StringLiteral].parse(this, 0) ||
+      operators[OpType.Identifier].parse(this, 0)
+    );
   }
 
-  private and(left: Token | undefined, precedence: number): Token | undefined {
-    if (!this.match('&&') || precedence > OpType.And) return;
-    if (!left) throw this.unexpectedToken('&&', this.pos);
-
-    const start = this.pos;
-    this.pos += 2;
-
-    const right = this.next(OpType.And);
-    if (!right) throw this.unexpectedToken('&&', start);
-
-    return operators[OpType.And].create(left, right);
-  }
-
-  private access(left: Token | undefined, precedence: number): Token | undefined {
-    if (!this.match('.') || precedence > OpType.MemberAccess) return;
-    if (!left) throw this.unexpectedToken('.', this.pos);
-
-    const start = this.pos;
-    this.pos++;
-
-    const right = this.next(OpType.MemberAccess);
-    if (!right) throw this.unexpectedToken('.', start);
-
-    return operators[OpType.MemberAccess].create(left, right);
-  }
-
-  private unary(): Token | undefined {
-    return this.paren() || this.string() || this.id();
-  }
-
-  private paren(): Token | undefined {
-    if (!this.match('(')) return;
-
-    const start = this.pos;
-    this.pos++;
-
-    const expr = this.next(0);
-    this.whitespace();
-
-    if (!expr) return;
-    if (!this.match(')')) {
-      throw this.unexpectedToken(this.str.slice(start, this.pos), start);
-    }
-
-    this.pos++;
-    return operators[OpType.Parentheses].create(expr);
-  }
-
-  private string(): Token | undefined {
-    if (!this.match("'")) return;
-
-    const start = this.pos;
-    this.pos++;
-
-    while (this.pos < this.str.length) {
-      if (this.match("'")) {
-        this.pos++;
-        if (!this.match("'")) {
-          const value = this.str.slice(start + 1, this.pos - 1).replace(/''/g, "'");
-          return operators[OpType.StringLiteral].create(value);
-        }
-      }
-      this.pos++;
-    }
-
-    throw this.unexpectedToken(this.str.slice(start, this.pos), start);
-  }
-
-  private id(): Token | undefined {
-    const start = this.pos;
-    while (isIdentifierChar(this.str[this.pos])) {
-      if (this.str[this.pos] === '-' && !isAlphaNum(this.str[this.pos + 1])) {
-        throw this.unexpectedToken('-', this.pos);
-      }
-      this.pos++;
-    }
-    if (this.pos === start) return;
-
-    const id = this.str.slice(start, this.pos);
-    return operators[OpType.Identifier].create(id);
-  }
-
-  private whitespace(): boolean {
+  whitespace(): boolean {
     while (isWhitespace(this.str[this.pos])) {
-      this.pos++;
+      this.move(1);
     }
     return this.pos < this.str.length;
   }
 
-  private match(expected: string): boolean {
+  match(expected: string): boolean {
     return this.str.startsWith(expected, this.pos);
   }
 
-  private unexpectedToken(token: string, pos: number) {
+  unexpectedToken(token: string, pos: number) {
     return new UnexpectedTokenError(token, pos + this.offset);
+  }
+
+  move(n: number): void {
+    this.pos += n;
+  }
+
+  slice(start: number, end?: number): string {
+    return this.str.slice(start, end !== undefined ? end : this.pos);
   }
 }
 
