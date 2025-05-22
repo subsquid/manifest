@@ -1,3 +1,5 @@
+import assert from 'assert';
+
 import {
   Parser,
   UnexpectedTokenError,
@@ -227,31 +229,38 @@ describe('Expression Parser', () => {
     });
   });
 
-  // Variables extraction tests are commented out as the method doesn't exist yet
-  // describe('Variables extraction', () => {
-  //   it('should extract root level', () => {
-  //     const variables = parser.parse('${{foo.bar}}').variables();
-  //     expect(variables).toEqual(['foo']);
-  //   });
-  //
-  //   it('should extract all from complex expression', () => {
-  //     const variables = parser.parse('${{foo.bar}} ${{baz}}').variables();
-  //     expect(variables).toContain('foo');
-  //     expect(variables).toContain('baz');
-  //   });
-  //
-  //   it('should extract nested with given prefix', () => {
-  //     const variables = parser.parse('${{foo.bar}}').variables(['foo']);
-  //     expect(variables).toEqual(['bar']);
-  //   });
-  //
-  //   it('should extract variables from expressions with operators', () => {
-  //     const variables = parser.parse('${{foo || bar && baz}}').variables();
-  //     expect(variables).toContain('foo');
-  //     expect(variables).toContain('bar');
-  //     expect(variables).toContain('baz');
-  //   });
-  // });
+  describe('Variables', () => {
+    it('returns variables for a simple expression', () => {
+      const expr = parser.parse('${{ a || b }}');
+      expect(expr.variables()).toEqual(['a', 'b']);
+    });
+
+    it('returns variables with member access', () => {
+      const expr = parser.parse('${{ a.b || c.d }}');
+      expect(expr.variables()).toEqual(['a', 'c']);
+    });
+
+    it('returns variables under prefix', () => {
+      const expr = parser.parse('${{ a.b || a.c || d }}');
+      expect(expr.variables(['a'])).toEqual(['b', 'c']);
+    });
+
+    it('returns empty array for non-matching prefix', () => {
+      const expr = parser.parse('${{ a.b || c.d }}');
+      expect(expr.variables(['x'])).toEqual([]);
+    });
+
+    it('handles complex expressions with prefix', () => {
+      const expr = parser.parse('${{ a.b || a || b.a }}');
+      expect(expr.variables(['a'])).toEqual(['b']);
+    });
+
+    it('handles nested member access with prefix', () => {
+      const expr = parser.parse('${{ a.b.c || a.d }}');
+      expect(expr.variables(['a'])).toEqual(['b', 'd']);
+      expect(expr.variables(['a', 'b'])).toEqual(['c']);
+    });
+  });
 
   describe('Error messages', () => {
     it('should include full path in top-level', () => {
