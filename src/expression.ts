@@ -26,7 +26,7 @@ export class UndefinedVariableError extends EvaluationError {
 
 export class ExpressionNotResolvedError extends EvaluationError {
   constructor(expr?: string) {
-    super(`${expr || 'Expression'} was not resolved to any value`);
+    super(`${expr ? `"${expr}"` : 'Expression'} was not resolved to any value`);
   }
 }
 

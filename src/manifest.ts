@@ -343,7 +343,7 @@ export class Manifest {
 }
 
 function getError(path: string, expression: string | undefined, error: unknown) {
-  const exprIn = expression ? ` for "${expression}" expression` : '';
+  const exprIn = expression ? ` to "${expression}"` : '';
 
   return [
     `Manifest env variable "${path}" can not be mapped${exprIn}`,
