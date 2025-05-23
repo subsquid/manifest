@@ -316,7 +316,7 @@ export class Tokenizer {
       res = token;
     }
 
-    if (checkEnd && this.pos < this.str.length) {
+    if ((checkEnd || !res) && this.pos < this.str.length) {
       throw this.unexpectedToken(this.str[this.pos], this.pos);
     }
 

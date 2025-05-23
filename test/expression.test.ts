@@ -245,6 +245,10 @@ describe('Expression Parser', () => {
         '"foo.bar" is not defined (reading \'baz\')',
       );
     });
+
+    it('should throw on correct possition after binary operator', () => {
+      expect(() => parser.parse('foo || "bar"')).toThrow(new UnexpectedTokenError('"', 7));
+    });
   });
 
   describe('Parentheses operator', () => {
