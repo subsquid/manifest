@@ -102,7 +102,7 @@ describe('Env Evaluation', () => {
         }),
       ).toThrow(
         new ManifestEvaluatingError([
-          `Manifest env variable "deploy.env.foo" can not be mapped to "\${{foo.}}": ${new UnexpectedTokenError('.', 6).message}`,
+          `Manifest env variable "deploy.env.foo" can not be mapped to "\${{foo.}}": Unexpected token '.' [6]`,
         ]),
       );
     });
