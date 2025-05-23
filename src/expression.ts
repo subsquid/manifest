@@ -109,6 +109,10 @@ namespace Operator {
 
     constructor(readonly value: [Token, Token]) {}
 
+    add(right: Token) {
+      this.value[1] = new Operator.And([this.value[1], right]);
+    }
+
     eval(ctx: any, path: string[]) {
       const [left, right] = this.value;
       const leftValue = left.eval(ctx, path);
@@ -125,6 +129,10 @@ namespace Operator {
     readonly type = TokenType.Operator;
 
     constructor(readonly value: [Token, Token]) {}
+
+    add(right: Token) {
+      this.value[1] = new Operator.And([this.value[1], right]);
+    }
 
     eval(ctx: any, path: string[]) {
       const [left, right] = this.value;
@@ -162,77 +170,65 @@ namespace Operator {
   }
 }
 
-const operators = Object.values({
-  [OpType.Or]: {
-    parse: (tkzr: Tokenizer, precedence: number, left?: Token) => {
-      if (!tkzr.str.startsWith('||', tkzr.pos) || precedence > OpType.Or) return;
-      if (!left) throw tkzr.unexpectedToken('||', tkzr.pos);
+const operators = {
+  [OpType.Or]: (tkzr: Tokenizer, precedence: number, left?: Token) => {
+    if (!tkzr.str.startsWith('||', tkzr.pos) || precedence > OpType.Or) return;
+    if (!left) throw tkzr.unexpectedToken('||', tkzr.pos);
 
-      const start = tkzr.pos;
-      tkzr.pos += 2;
+    const start = tkzr.pos;
+    tkzr.pos += 2;
 
-      const right = tkzr.next(OpType.Or);
-      if (!right) throw tkzr.unexpectedToken('||', start);
+    const right = tkzr.next(OpType.Or);
+    if (!right) throw tkzr.unexpectedToken('||', start);
 
-      return left instanceof Operator.Or
-        ? new Operator.Or([left.value[0], new Operator.Or([left.value[1], right])])
-        : new Operator.Or([left, right]);
-    },
+    return left instanceof Operator.Or ? left.add(right) : new Operator.Or([left, right]);
   },
-  [OpType.And]: {
-    parse: (tkzr: Tokenizer, precedence: number, left?: Token) => {
-      if (!tkzr.str.startsWith('&&', tkzr.pos) || precedence > OpType.And) return;
-      if (!left) throw tkzr.unexpectedToken('&&', tkzr.pos);
+  [OpType.And]: (tkzr: Tokenizer, precedence: number, left?: Token) => {
+    if (!tkzr.str.startsWith('&&', tkzr.pos) || precedence > OpType.And) return;
+    if (!left) throw tkzr.unexpectedToken('&&', tkzr.pos);
 
-      const start = tkzr.pos;
-      tkzr.pos += 2;
+    const start = tkzr.pos;
+    tkzr.pos += 2;
 
-      const right = tkzr.next(OpType.And);
-      if (!right) throw tkzr.unexpectedToken('&&', start);
+    const right = tkzr.next(OpType.And);
+    if (!right) throw tkzr.unexpectedToken('&&', start);
 
-      return left instanceof Operator.And
-        ? new Operator.And([left.value[0], new Operator.And([left.value[1], right])])
-        : new Operator.And([left, right]);
-    },
+    return left instanceof Operator.And ? left.add(right) : new Operator.And([left, right]);
   },
-  [OpType.MemberAccess]: {
-    parse: (tkzr: Tokenizer, precedence: number, left?: Token) => {
-      if (!tkzr.str.startsWith('.', tkzr.pos) || precedence > OpType.MemberAccess) return;
-      if (!left) throw tkzr.unexpectedToken('.', tkzr.pos);
+  [OpType.MemberAccess]: (tkzr: Tokenizer, precedence: number, left?: Token) => {
+    if (!tkzr.str.startsWith('.', tkzr.pos) || precedence > OpType.MemberAccess) return;
+    if (!left) throw tkzr.unexpectedToken('.', tkzr.pos);
 
-      const start = tkzr.pos;
-      tkzr.pos += 1;
+    const start = tkzr.pos;
+    tkzr.pos += 1;
 
-      const right = tkzr.next(OpType.MemberAccess);
-      if (!right) throw tkzr.unexpectedToken('.', start);
+    const right = tkzr.next(OpType.MemberAccess);
+    if (!right) throw tkzr.unexpectedToken('.', start);
 
-      return new Operator.MemberAccess([left, right]);
-    },
+    return new Operator.MemberAccess([left, right]);
   },
-  [OpType.Parentheses]: {
-    parse: (tkzr: Tokenizer, precedence: number, left?: Token) => {
-      if (!tkzr.str.startsWith('(', tkzr.pos) || precedence > OpType.Parentheses) return;
+  [OpType.Parentheses]: (tkzr: Tokenizer, precedence: number, left?: Token) => {
+    if (!tkzr.str.startsWith('(', tkzr.pos) || precedence > OpType.Parentheses) return;
 
-      if (left) {
-        throw new UnexpectedTokenError('(', tkzr.pos);
-      }
+    if (left) {
+      throw new UnexpectedTokenError('(', tkzr.pos);
+    }
 
-      const start = tkzr.pos;
-      tkzr.pos += 1;
+    const start = tkzr.pos;
+    tkzr.pos += 1;
 
-      const expr = tkzr.next(0);
-      tkzr.whitespace();
+    const expr = tkzr.next(0);
+    tkzr.whitespace();
 
-      if (!expr) return;
-      if (!tkzr.str.startsWith(')', tkzr.pos)) {
-        throw tkzr.unexpectedToken(tkzr.str.slice(start), start);
-      }
+    if (!expr) return;
+    if (!tkzr.str.startsWith(')', tkzr.pos)) {
+      throw tkzr.unexpectedToken(tkzr.str.slice(start), start);
+    }
 
-      tkzr.pos += 1;
-      return expr;
-    },
+    tkzr.pos += 1;
+    return expr;
   },
-});
+};
 
 class Identifier implements Token {
   readonly type = TokenType.Identifier;
@@ -277,50 +273,44 @@ class StringLiteral implements Token {
 }
 
 const tokens = {
-  [TokenType.Identifier]: {
-    parse: (tkzr: Tokenizer) => {
-      const start = tkzr.pos;
-      while (isIdentifierChar(tkzr.str[tkzr.pos])) {
-        if (tkzr.str[tkzr.pos] === '-' && !isAlphaNum(tkzr.str[tkzr.pos + 1])) {
-          throw tkzr.unexpectedToken('-', tkzr.pos);
-        }
-        tkzr.pos += 1;
+  [TokenType.Identifier]: (tkzr: Tokenizer) => {
+    const start = tkzr.pos;
+    while (isIdentifierChar(tkzr.str[tkzr.pos])) {
+      if (tkzr.str[tkzr.pos] === '-' && !isAlphaNum(tkzr.str[tkzr.pos + 1])) {
+        throw tkzr.unexpectedToken('-', tkzr.pos);
       }
-      if (tkzr.pos === start) return;
-
-      const id = tkzr.str.slice(start, tkzr.pos);
-      return new Identifier(id);
-    },
-  },
-  [TokenType.Literal]: {
-    parse: (tkzr: Tokenizer) => {
-      if (!tkzr.str.startsWith("'", tkzr.pos)) return;
-
-      const start = tkzr.pos;
       tkzr.pos += 1;
+    }
+    if (tkzr.pos === start) return;
 
-      while (tkzr.str[tkzr.pos]) {
-        if (tkzr.str[tkzr.pos] === "'") {
-          tkzr.pos += 1;
-          if (tkzr.str[tkzr.pos] !== "'") {
-            const value = tkzr.str.slice(start + 1, tkzr.pos - 1).replace(/''/g, "'");
-            return new StringLiteral(value);
-          }
-        }
-        tkzr.pos += 1;
-      }
-
-      throw tkzr.unexpectedToken(tkzr.str.slice(start), start);
-    },
+    const id = tkzr.str.slice(start, tkzr.pos);
+    return new Identifier(id);
   },
-  [TokenType.Operator]: {
-    parse: (tkzr: Tokenizer, precedence: number, left?: Token) => {
-      for (const op of Object.values(operators)) {
-        const res = op.parse(tkzr, precedence, left);
-        if (res) return res;
+  [TokenType.Literal]: (tkzr: Tokenizer) => {
+    if (!tkzr.str.startsWith("'", tkzr.pos)) return;
+
+    const start = tkzr.pos;
+    tkzr.pos += 1;
+
+    while (tkzr.str[tkzr.pos]) {
+      if (tkzr.str[tkzr.pos] === "'") {
+        tkzr.pos += 1;
+        if (tkzr.str[tkzr.pos] !== "'") {
+          const value = tkzr.str.slice(start + 1, tkzr.pos - 1).replace(/''/g, "'");
+          return new StringLiteral(value);
+        }
       }
-      return;
-    },
+      tkzr.pos += 1;
+    }
+
+    throw tkzr.unexpectedToken(tkzr.str.slice(start), start);
+  },
+  [TokenType.Operator]: (tkzr: Tokenizer, precedence: number, left?: Token) => {
+    for (const op in operators) {
+      const res = operators[op](tkzr, precedence, left);
+      if (res) return res;
+    }
+    return;
   },
 };
 
@@ -350,15 +340,15 @@ export class Tokenizer {
   }
 
   operator(precedence: number, left?: Token): Token | undefined {
-    return tokens[TokenType.Operator].parse(this, precedence, left);
+    return tokens[TokenType.Operator](this, precedence, left);
   }
 
   literal(): Token | undefined {
-    return tokens[TokenType.Literal].parse(this);
+    return tokens[TokenType.Literal](this);
   }
 
   identifier(): Token | undefined {
-    return tokens[TokenType.Identifier].parse(this);
+    return tokens[TokenType.Identifier](this);
   }
 
   whitespace(): boolean {
