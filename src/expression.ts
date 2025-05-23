@@ -30,6 +30,12 @@ export class ExpressionNotResolvedError extends EvaluationError {
   }
 }
 
+export class ExpressionNotSerializableError extends EvaluationError {
+  constructor(expr?: string) {
+    super(`${expr ? `"${expr}"` : 'Expression'} is not serializable`);
+  }
+}
+
 export function isTrue(value: unknown): boolean {
   switch (value) {
     case undefined:
@@ -65,6 +71,10 @@ function isAlpha(char: string): boolean {
 
 function isIdentifierChar(char: string): boolean {
   return isAlphaNum(char) || char === '_' || char === '-';
+}
+
+function isPrimitive(value: unknown): boolean {
+  return typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean';
 }
 
 export enum OpType {
@@ -362,6 +372,11 @@ export class Expression {
     if (isNull(evaluated)) {
       throw new ExpressionNotResolvedError(this.str);
     }
+
+    if (!isPrimitive(evaluated)) {
+      throw new ExpressionNotSerializableError(this.str);
+    }
+
     return String(evaluated);
   }
 
