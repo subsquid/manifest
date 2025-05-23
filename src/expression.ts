@@ -1,5 +1,3 @@
-import assert from 'assert';
-
 export class ParsingError extends Error {
   readonly name = 'ParsingError';
   constructor(message: string, pos: number) {
@@ -10,6 +8,12 @@ export class ParsingError extends Error {
 export class UnexpectedTokenError extends ParsingError {
   constructor(token: string, pos: number) {
     super(`Unexpected token '${token}'`, pos);
+  }
+}
+
+export class ExpressionExpectedError extends ParsingError {
+  constructor(pos: number) {
+    super('Expression expected', pos);
   }
 }
 
@@ -36,7 +40,7 @@ export class ExpressionNotSerializableError extends EvaluationError {
   }
 }
 
-export function isTrue(value: unknown): boolean {
+function isTrue(value: unknown): boolean {
   switch (value) {
     case undefined:
     case null:
@@ -49,7 +53,7 @@ export function isTrue(value: unknown): boolean {
   }
 }
 
-export function isNull(value: unknown): boolean {
+function isNull(value: unknown): boolean {
   return value === null || value === undefined;
 }
 
@@ -77,22 +81,88 @@ function isPrimitive(value: unknown): boolean {
   return typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean';
 }
 
+export enum TokenType {
+  Identifier,
+  Literal,
+  Operator,
+}
+
 export enum OpType {
   Or,
   And,
   MemberAccess,
-  Identifier,
-  StringLiteral,
   Parentheses,
 }
 
-export type OpConfig<T extends Token> = {
-  parse: (tkzr: Tokenizer, precedence: number, left?: Token) => Token | undefined;
-  eval: (token: T, ctx: any, path: string[]) => { value: unknown; path: string[] };
-  variables: (token: T, path: string[]) => string[];
-};
+export interface Token {
+  type: TokenType;
+  eval: (ctx: any, path: string[]) => { value: unknown; path: string[] };
+  variables: (path: string[]) => string[];
+}
 
-const operators: Record<OpType, OpConfig<Token>> = {
+export type LiteralValue = string;
+
+// eslint-disable-next-line @typescript-eslint/no-namespace
+namespace Operator {
+  export class Or implements Token {
+    readonly type = TokenType.Operator;
+
+    constructor(readonly value: [Token, Token]) {}
+
+    eval(ctx: any, path: string[]) {
+      const [left, right] = this.value;
+      const leftValue = left.eval(ctx, path);
+      return isTrue(leftValue.value) ? leftValue : right.eval(ctx, path);
+    }
+
+    variables(path: string[]) {
+      const [left, right] = this.value;
+      return [...left.variables(path), ...right.variables(path)];
+    }
+  }
+
+  export class And implements Token {
+    readonly type = TokenType.Operator;
+
+    constructor(readonly value: [Token, Token]) {}
+
+    eval(ctx: any, path: string[]) {
+      const [left, right] = this.value;
+      const leftValue = left.eval(ctx, path);
+      return isTrue(leftValue.value) ? right.eval(ctx, path) : leftValue;
+    }
+
+    variables(path: string[]) {
+      const [left, right] = this.value;
+      return [...left.variables(path), ...right.variables(path)];
+    }
+  }
+
+  export class MemberAccess implements Token {
+    readonly type = TokenType.Operator;
+
+    constructor(readonly value: [Token, Token]) {}
+
+    eval(ctx: any, path: string[]) {
+      const [left, right] = this.value;
+      const leftValue = left.eval(ctx, path);
+      return right.eval(leftValue.value, leftValue.path);
+    }
+
+    variables(path: string[]) {
+      const [left, right] = this.value;
+
+      const leftVars = left.variables([]);
+      if (path.length === 0) {
+        return leftVars;
+      }
+
+      return leftVars.some(v => v === path[0]) ? right.variables(path.slice(1)) : [];
+    }
+  }
+}
+
+const operators = Object.values({
   [OpType.Or]: {
     parse: (tkzr: Tokenizer, precedence: number, left?: Token) => {
       if (!tkzr.str.startsWith('||', tkzr.pos) || precedence > OpType.Or) return;
@@ -104,23 +174,9 @@ const operators: Record<OpType, OpConfig<Token>> = {
       const right = tkzr.next(OpType.Or);
       if (!right) throw tkzr.unexpectedToken('||', start);
 
-      return left[0] === OpType.Or
-        ? [OpType.Or, left[1], [OpType.Or, left[2], right]]
-        : [OpType.Or, left, right];
-    },
-    eval: (token, ctx, path) => {
-      const [type, left, right] = token;
-      assert(type === OpType.Or);
-      const leftValue = operators[left[0]].eval(left, ctx, path);
-      return isTrue(leftValue.value) ? leftValue : operators[right[0]].eval(right, ctx, path);
-    },
-    variables: (token, path) => {
-      const [type, left, right] = token;
-      assert(type === OpType.Or);
-      return [
-        ...operators[left[0]].variables(left, path),
-        ...operators[right[0]].variables(right, path),
-      ];
+      return left instanceof Operator.Or
+        ? new Operator.Or([left.value[0], new Operator.Or([left.value[1], right])])
+        : new Operator.Or([left, right]);
     },
   },
   [OpType.And]: {
@@ -134,23 +190,9 @@ const operators: Record<OpType, OpConfig<Token>> = {
       const right = tkzr.next(OpType.And);
       if (!right) throw tkzr.unexpectedToken('&&', start);
 
-      return left[0] === OpType.And
-        ? [OpType.And, left[1], [OpType.And, left[2], right]]
-        : [OpType.And, left, right];
-    },
-    eval: (token, ctx, path) => {
-      const [type, left, right] = token;
-      assert(type === OpType.And);
-      const leftValue = operators[left[0]].eval(left, ctx, path);
-      return isTrue(leftValue.value) ? operators[right[0]].eval(right, ctx, path) : leftValue;
-    },
-    variables: (token, path) => {
-      const [type, left, right] = token;
-      assert(type === OpType.And);
-      return [
-        ...operators[left[0]].variables(left, path),
-        ...operators[right[0]].variables(right, path),
-      ];
+      return left instanceof Operator.And
+        ? new Operator.And([left.value[0], new Operator.And([left.value[1], right])])
+        : new Operator.And([left, right]);
     },
   },
   [OpType.MemberAccess]: {
@@ -164,102 +206,16 @@ const operators: Record<OpType, OpConfig<Token>> = {
       const right = tkzr.next(OpType.MemberAccess);
       if (!right) throw tkzr.unexpectedToken('.', start);
 
-      return [OpType.MemberAccess, left, right];
-    },
-    eval: (token, ctx, path) => {
-      const [type, left, right] = token;
-      assert(type === OpType.MemberAccess);
-      const leftValue = operators[left[0]].eval(left, ctx, path);
-      return operators[right[0]].eval(right, leftValue.value, leftValue.path);
-    },
-    variables: (token, path) => {
-      const [type, left, right] = token;
-      assert(type === OpType.MemberAccess);
-
-      const leftVars = operators[left[0]].variables(left, []);
-
-      if (path.length === 0) {
-        return leftVars;
-      }
-
-      return leftVars.some(v => v === path[0])
-        ? operators[right[0]].variables(right, path.slice(1))
-        : [];
-    },
-  },
-  [OpType.Identifier]: {
-    parse: (tkzr: Tokenizer, precedence: number) => {
-      const start = tkzr.pos;
-      while (isIdentifierChar(tkzr.str[tkzr.pos])) {
-        if (tkzr.str[tkzr.pos] === '-' && !isAlphaNum(tkzr.str[tkzr.pos + 1])) {
-          throw tkzr.unexpectedToken('-', tkzr.pos);
-        }
-        tkzr.pos += 1;
-      }
-      if (tkzr.pos === start) return;
-
-      const id = tkzr.str.slice(start, tkzr.pos);
-      return [OpType.Identifier, id];
-    },
-    eval: (token, ctx, path) => {
-      const [type, id] = token;
-      assert(type === OpType.Identifier);
-
-      if (isNull(ctx)) {
-        throw new UndefinedVariableError(path, id);
-      }
-
-      if (ctx.hasOwnProperty(id)) {
-        return { value: ctx[id], path: [...path, id] };
-      }
-
-      if (path.length === 0) {
-        throw new UndefinedVariableError([id]);
-      }
-
-      return { value: undefined, path: [...path, id] };
-    },
-    variables: (token, prefix) => {
-      const [type, id] = token;
-      assert(type === OpType.Identifier);
-
-      return prefix.length === 0 ? [id] : [];
-    },
-  },
-  [OpType.StringLiteral]: {
-    parse: (tkzr: Tokenizer) => {
-      if (!tkzr.str.startsWith("'", tkzr.pos)) return;
-
-      const start = tkzr.pos;
-      tkzr.pos += 1;
-
-      while (tkzr.str[tkzr.pos]) {
-        if (tkzr.str[tkzr.pos] === "'") {
-          tkzr.pos += 1;
-          if (tkzr.str[tkzr.pos] !== "'") {
-            const value = tkzr.str.slice(start + 1, tkzr.pos - 1).replace(/''/g, "'");
-            return [OpType.StringLiteral, value];
-          }
-        }
-        tkzr.pos += 1;
-      }
-
-      throw tkzr.unexpectedToken(tkzr.str.slice(start), start);
-    },
-    eval: token => {
-      const [type, str] = token;
-      assert(type === OpType.StringLiteral);
-      return { value: str, path: [] };
-    },
-    variables: token => {
-      const [type] = token;
-      assert(type === OpType.StringLiteral);
-      return [];
+      return new Operator.MemberAccess([left, right]);
     },
   },
   [OpType.Parentheses]: {
-    parse: (tkzr: Tokenizer, precedence: number) => {
+    parse: (tkzr: Tokenizer, precedence: number, left?: Token) => {
       if (!tkzr.str.startsWith('(', tkzr.pos) || precedence > OpType.Parentheses) return;
+
+      if (left) {
+        throw new UnexpectedTokenError('(', tkzr.pos);
+      }
 
       const start = tkzr.pos;
       tkzr.pos += 1;
@@ -273,40 +229,100 @@ const operators: Record<OpType, OpConfig<Token>> = {
       }
 
       tkzr.pos += 1;
-      return [OpType.Parentheses, expr];
+      return expr;
     },
-    eval: (token, ctx, path) => {
-      const [type, expr] = token;
-      assert(type === OpType.Parentheses);
-      return operators[expr[0]].eval(expr, ctx, path);
+  },
+});
+
+class Identifier implements Token {
+  readonly type = TokenType.Identifier;
+
+  constructor(readonly value: string) {}
+
+  eval(ctx: any, path: string[]) {
+    const id = this.value;
+
+    if (isNull(ctx)) {
+      throw new UndefinedVariableError(path, id);
+    }
+
+    if (ctx.hasOwnProperty(id)) {
+      return { value: ctx[id], path: [...path, id] };
+    }
+
+    if (path.length === 0) {
+      throw new UndefinedVariableError([id]);
+    }
+
+    return { value: undefined, path: [...path, id] };
+  }
+
+  variables(path: string[]) {
+    return path.length === 0 ? [this.value] : [];
+  }
+}
+
+class StringLiteral implements Token {
+  readonly type = TokenType.Literal;
+
+  constructor(readonly value: string) {}
+
+  eval(ctx: any, path: string[]) {
+    return { value: this.value, path };
+  }
+
+  variables(path: string[]) {
+    return [];
+  }
+}
+
+const tokens = {
+  [TokenType.Identifier]: {
+    parse: (tkzr: Tokenizer) => {
+      const start = tkzr.pos;
+      while (isIdentifierChar(tkzr.str[tkzr.pos])) {
+        if (tkzr.str[tkzr.pos] === '-' && !isAlphaNum(tkzr.str[tkzr.pos + 1])) {
+          throw tkzr.unexpectedToken('-', tkzr.pos);
+        }
+        tkzr.pos += 1;
+      }
+      if (tkzr.pos === start) return;
+
+      const id = tkzr.str.slice(start, tkzr.pos);
+      return new Identifier(id);
     },
-    variables: (token, prefix) => {
-      const [type, expr] = token;
-      assert(type === OpType.Parentheses);
-      return operators[expr[0]].variables(expr, prefix);
+  },
+  [TokenType.Literal]: {
+    parse: (tkzr: Tokenizer) => {
+      if (!tkzr.str.startsWith("'", tkzr.pos)) return;
+
+      const start = tkzr.pos;
+      tkzr.pos += 1;
+
+      while (tkzr.str[tkzr.pos]) {
+        if (tkzr.str[tkzr.pos] === "'") {
+          tkzr.pos += 1;
+          if (tkzr.str[tkzr.pos] !== "'") {
+            const value = tkzr.str.slice(start + 1, tkzr.pos - 1).replace(/''/g, "'");
+            return new StringLiteral(value);
+          }
+        }
+        tkzr.pos += 1;
+      }
+
+      throw tkzr.unexpectedToken(tkzr.str.slice(start), start);
+    },
+  },
+  [TokenType.Operator]: {
+    parse: (tkzr: Tokenizer, precedence: number, left?: Token) => {
+      for (const op of Object.values(operators)) {
+        const res = op.parse(tkzr, precedence, left);
+        if (res) return res;
+      }
+      return;
     },
   },
 };
-
-type Token =
-  | [OpType.Or | OpType.And, Token, Token]
-  | [OpType.MemberAccess, Token, Token]
-  | [OpType.Identifier, string]
-  | [OpType.StringLiteral, string]
-  | [OpType.Parentheses, Token];
-
-export class Parser {
-  parse(str: string, start = 0, end = str.length): Expression {
-    const expr = start === 0 && end === str.length ? str : str.slice(start, end);
-
-    const token = new Tokenizer(expr, start).next(0, true);
-    if (!token) {
-      throw new ParsingError('Expression expected', start);
-    }
-
-    return new Expression(token, expr);
-  }
-}
 
 export class Tokenizer {
   public pos = 0;
@@ -318,12 +334,12 @@ export class Tokenizer {
 
   next(precedence: number, checkEnd = false): Token | undefined {
     this.whitespace();
-    let res = this.unary();
+    let res = this.literal() || this.identifier();
 
     while (this.whitespace()) {
-      const token = this.binary(res, precedence);
-      if (!token) break;
-      res = token;
+      const operator = this.operator(precedence, res);
+      if (!operator) break;
+      res = operator;
     }
 
     if ((checkEnd || !res) && this.pos < this.str.length) {
@@ -333,20 +349,16 @@ export class Tokenizer {
     return res;
   }
 
-  binary(left: Token | undefined, precedence: number): Token | undefined {
-    return (
-      operators[OpType.MemberAccess].parse(this, precedence, left) ||
-      operators[OpType.And].parse(this, precedence, left) ||
-      operators[OpType.Or].parse(this, precedence, left)
-    );
+  operator(precedence: number, left?: Token): Token | undefined {
+    return tokens[TokenType.Operator].parse(this, precedence, left);
   }
 
-  unary(): Token | undefined {
-    return (
-      operators[OpType.Parentheses].parse(this, 0) ||
-      operators[OpType.StringLiteral].parse(this, 0) ||
-      operators[OpType.Identifier].parse(this, 0)
-    );
+  literal(): Token | undefined {
+    return tokens[TokenType.Literal].parse(this);
+  }
+
+  identifier(): Token | undefined {
+    return tokens[TokenType.Identifier].parse(this);
   }
 
   whitespace(): boolean {
@@ -368,7 +380,7 @@ export class Expression {
   ) {}
 
   eval(context: Record<string, any> = {}): string {
-    const evaluated = operators[this.token[0]].eval(this.token, context, []).value;
+    const evaluated = this.token.eval(context, []).value;
     if (isNull(evaluated)) {
       throw new ExpressionNotResolvedError(this.str);
     }
@@ -381,7 +393,20 @@ export class Expression {
   }
 
   variables(path: string[] = []): string[] {
-    const vars = operators[this.token[0]].variables(this.token, path);
+    const vars = this.token.variables(path);
     return [...new Set(vars)];
+  }
+}
+
+export class Parser {
+  parse(str: string, start = 0, end = str.length): Expression {
+    const expr = start === 0 && end === str.length ? str : str.slice(start, end);
+
+    const token = new Tokenizer(expr, start).next(0, true);
+    if (!token) {
+      throw new ExpressionExpectedError(start);
+    }
+
+    return new Expression(token, expr);
   }
 }
