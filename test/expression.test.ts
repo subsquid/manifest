@@ -309,4 +309,120 @@ describe('Expression Parser', () => {
       expect(() => parser.parse('.foo')).toThrow(new UnexpectedTokenError('.', 0));
     });
   });
+
+  describe('Logical operators', () => {
+    describe('OR operator', () => {
+      it('should return first truthy value', () => {
+        expect(
+          parser.parse('foo || bar').eval({
+            foo: 'first',
+            bar: 'second',
+          }),
+        ).toEqual('first');
+      });
+
+      it('should skip falsy values', () => {
+        expect(
+          parser.parse('foo || bar || baz').eval({
+            foo: '',
+            bar: null,
+            baz: 'third',
+          }),
+        ).toEqual('third');
+      });
+
+      it('should handle multiple OR operators', () => {
+        expect(
+          parser.parse('foo || bar || baz || qux').eval({
+            foo: '',
+            bar: '',
+            baz: '',
+            qux: 'last',
+          }),
+        ).toEqual('last');
+      });
+
+      it('should return empty string if all values are falsy', () => {
+        expect(
+          parser.parse('foo || bar').eval({
+            foo: '',
+            bar: '',
+          }),
+        ).toEqual('');
+      });
+    });
+
+    describe('AND operator', () => {
+      it('should return last value if all truthy', () => {
+        expect(
+          parser.parse('foo && bar').eval({
+            foo: 'first',
+            bar: 'second',
+          }),
+        ).toEqual('second');
+      });
+
+      it('should return first falsy value', () => {
+        expect(
+          parser.parse('foo && bar && baz').eval({
+            foo: 'first',
+            bar: '',
+            baz: 'third',
+          }),
+        ).toEqual('');
+      });
+
+      it('should handle multiple AND operators', () => {
+        expect(
+          parser.parse('foo && bar && baz && qux').eval({
+            foo: 'first',
+            bar: 'second',
+            baz: 'third',
+            qux: 'last',
+          }),
+        ).toEqual('last');
+      });
+
+      it('should handle null values', () => {
+        expect(() =>
+          parser.parse('foo && bar').eval({
+            foo: 'first',
+            bar: null,
+          }),
+        ).toThrow(new ExpressionNotResolvedError('foo && bar'));
+      });
+    });
+
+    describe('Mixed operators', () => {
+      it('should handle AND and OR together', () => {
+        expect(
+          parser.parse('foo && bar || baz').eval({
+            foo: 'first',
+            bar: 'second',
+            baz: 'third',
+          }),
+        ).toEqual('second');
+      });
+
+      it('should respect operator precedence (AND before OR)', () => {
+        expect(
+          parser.parse('foo || bar && baz').eval({
+            foo: '',
+            bar: 'second',
+            baz: 'third',
+          }),
+        ).toEqual('third');
+      });
+
+      it('should handle complex expressions', () => {
+        expect(
+          parser.parse('foo.prop || bar && baz.value').eval({
+            foo: { prop: '' },
+            bar: 'second',
+            baz: { value: 'third' },
+          }),
+        ).toEqual('third');
+      });
+    });
+  });
 });
