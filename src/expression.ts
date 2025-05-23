@@ -267,11 +267,11 @@ class StringLiteral implements Token {
 
   constructor(readonly value: string) {}
 
-  eval(ctx: any, path: string[]) {
-    return { value: this.value, path };
+  eval() {
+    return { value: this.value, path: [] };
   }
 
-  variables(path: string[]) {
+  variables() {
     return [];
   }
 }
