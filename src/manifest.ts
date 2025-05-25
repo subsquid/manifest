@@ -2,9 +2,11 @@ import yaml from 'js-yaml';
 import { cloneDeep, defaultsDeep, get, mapValues, set } from 'lodash';
 
 import { ManifestEvaluatingError, ManifestParsingError } from './errors';
-import { Expression, Parser } from './expression';
+import { Expression, ExpressionNotResolvedError, Parser } from './expression';
 import { manifestSchema } from './schema';
 import { DeepPartial, ManifestDeploymentConfig, ManifestProcessor, ManifestValue } from './types';
+
+export const EXPR_PATTERN = /(\${{[^}]*}})/g;
 
 export type ManifestParsingOptions = {
   validation?: { allowUnknown?: boolean };
@@ -16,6 +18,8 @@ export interface Manifest extends ManifestValue {
     processor: ManifestProcessor[];
   };
 }
+
+const parser = new Parser();
 
 const DEFAULT_MIGRATION = ['npx', 'squid-typeorm-migration', 'apply'];
 
@@ -94,7 +98,6 @@ export class Manifest {
   eval(context: Record<string, unknown>): Manifest {
     const raw = this.toObject();
     const paths = this.getAllEnvPaths();
-    const parser = new Parser();
     const errors: string[] = [];
 
     for (const path of paths) {
@@ -105,16 +108,10 @@ export class Manifest {
         raw,
         path,
         mapValues(envObject, (value, key) => {
-          let expr: Expression;
           try {
-            expr = parser.parse(value);
-          } catch (e) {
-            errors.push(getError(`${path}.${key}`, value, e));
-            return value;
-          }
-
-          try {
-            return expr.eval(context);
+            return parseString(value)
+              .map(part => (typeof part === 'string' ? part : part.eval(context)))
+              .join('');
           } catch (e) {
             errors.push(getError(`${path}.${key}`, value, e));
             return value;
@@ -133,25 +130,21 @@ export class Manifest {
   variables(prefix: string[] = []): string[] {
     const raw = this.toObject();
     const paths = this.getAllEnvPaths();
-    const parser = new Parser();
     const errors: string[] = [];
-    const result = new Set<string>();
+    const result: string[] = [];
 
     for (const path of paths) {
       const envObject: Record<string, string> = get(raw, path);
       if (!envObject) continue;
 
       for (const [key, value] of Object.entries(envObject)) {
-        let expr: Expression;
         try {
-          expr = parser.parse(value);
+          const vars = parseString(value).flatMap(part =>
+            typeof part === 'string' ? [] : part.variables(prefix),
+          );
+          result.push(...vars);
         } catch (e) {
           errors.push(getError(`${path}.${key}`, value, e));
-          continue;
-        }
-
-        for (const name of expr.variables(prefix)) {
-          result.add(name);
         }
       }
     }
@@ -160,7 +153,7 @@ export class Manifest {
       throw new ManifestParsingError(errors);
     }
 
-    return Array.from(result);
+    return [...new Set(result)];
   }
 
   static validate(value: Partial<ManifestValue>, options: ManifestParsingOptions = {}) {
@@ -332,10 +325,42 @@ export class Manifest {
 }
 
 function getError(path: string, expression: string | undefined, error: unknown) {
-  const exprIn = expression ? ` for "${expression}" expression` : '';
+  const exprIn = expression ? ` to "${expression}"` : '';
 
   return [
-    `Manifest env variable "${path}" can not be mapped${exprIn}`,
-    error instanceof Error ? error.message : String(error),
-  ].join(': ');
+    `Manifest env variable "${path}" can not be mapped${exprIn}: ` +
+      (error instanceof Error ? error.message : String(error)),
+    error instanceof ExpressionNotResolvedError
+      ? '. Please ensure that all required variables are defined or the expression provides a valid fallback'
+      : '',
+  ]
+    .filter(Boolean)
+    .join('');
+}
+
+function parseString(str: string): (string | Expression)[] {
+  const parts: (string | Expression)[] = [];
+  let lastIndex = 0;
+
+  for (const match of str.matchAll(EXPR_PATTERN)) {
+    const index = match.index || 0;
+
+    if (index > lastIndex) {
+      parts.push(str.slice(lastIndex, index));
+    }
+
+    const expr = match[1];
+    const startPos = index + 3;
+    const endPos = index + expr.length - 2;
+    const expression = parser.parse(str, startPos, endPos);
+    parts.push(expression);
+
+    lastIndex = index + match[0].length;
+  }
+
+  if (lastIndex < str.length) {
+    parts.push(str.slice(lastIndex));
+  }
+
+  return parts;
 }

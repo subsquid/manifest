@@ -1,117 +1,428 @@
-import { ParsingError, Parser, EvaluationError } from '../src/expression';
+import assert from 'assert';
 
-describe('Expression', () => {
+import {
+  Parser,
+  UnexpectedTokenError,
+  UndefinedVariableError,
+  ExpressionNotResolvedError,
+  ParsingError,
+} from '../src/expression';
+
+describe('Expression Parser', () => {
   const parser = new Parser();
 
-  it('string', () => {
-    const value = parser.parse('hello').eval();
-    expect(value).toEqual('hello');
+  describe('Basic parsing', () => {
+    it('should parse and evaluate string literal', () => {
+      const value = parser.parse("'hello'").eval();
+      expect(value).toEqual('hello');
+    });
+
+    it('should throw error for empty', () => {
+      expect(() => parser.parse('').eval()).toThrow(ParsingError);
+    });
   });
 
-  it('should resolve identifier', () => {
-    const value = parser.parse('${{foo}}').eval({ foo: 'foo' });
-    expect(value).toEqual('foo');
+  describe('Identifiers', () => {
+    it('should evaluate defined identifier', () => {
+      const value = parser.parse('foo').eval({ foo: 'foo' });
+      expect(value).toEqual('foo');
+    });
+
+    it('should throw error for undefined top-level', () => {
+      expect(() => parser.parse('foo').eval({})).toThrow(new UndefinedVariableError(['foo']));
+    });
+
+    it('should throw error for undefined nested with null parent', () => {
+      expect(() => parser.parse('foo.bar').eval({ foo: null })).toThrow(
+        new UndefinedVariableError(['foo'], 'bar'),
+      );
+    });
+
+    it('should throw error for undefined nested with undefined parent', () => {
+      expect(() => parser.parse('foo.bar').eval({ foo: undefined })).toThrow(
+        new UndefinedVariableError(['foo'], 'bar'),
+      );
+    });
+
+    it('should evaluate with hyphens, underscores and numbers', () => {
+      expect(parser.parse('foo-bar').eval({ ['foo-bar']: 'value' })).toEqual('value');
+      expect(parser.parse('foo_bar').eval({ ['foo_bar']: 'value' })).toEqual('value');
+      expect(parser.parse('foo1337').eval({ ['foo1337']: 'value' })).toEqual('value');
+    });
+
+    it('should throw error for ending with hyphen', () => {
+      expect(() => parser.parse('foo-').eval({})).toThrow(new UnexpectedTokenError('-', 3));
+    });
+
+    it('should evaluate starting with numbers', () => {
+      expect(parser.parse('1337foo').eval({ ['1337foo']: 'value' })).toEqual('value');
+    });
   });
 
-  it('should resolve identifier 2', () => {
-    const value = parser.parse('${{foo-bar}}').eval({ ['foo-bar']: 'foo-bar' });
-    expect(value).toEqual('foo-bar');
+  describe('Member access', () => {
+    it('should evaluate single level', () => {
+      const value = parser.parse('foo.bar').eval({ foo: { bar: 'bar' } });
+      expect(value).toEqual('bar');
+    });
+
+    it('should evaluate multi-level', () => {
+      const value = parser.parse('foo.bar.baz').eval({ foo: { bar: { baz: 'baz' } } });
+      expect(value).toEqual('baz');
+    });
+
+    it('should handle whitespace around dot', () => {
+      const value = parser.parse('foo  .    bar').eval({ foo: { bar: 'bar' } });
+      expect(value).toEqual('bar');
+    });
+
+    it('should throw error for undefined nested with null parent', () => {
+      expect(() => parser.parse('foo.bar.baz').eval({ foo: { bar: null } })).toThrow(
+        new UndefinedVariableError(['foo', 'bar'], 'baz'),
+      );
+    });
+
+    it('should throw error for null or undefined parent', () => {
+      expect(() => parser.parse('foo.bar').eval({ foo: null })).toThrow(
+        new UndefinedVariableError(['foo'], 'bar'),
+      );
+      expect(() => parser.parse('foo.bar').eval({ foo: undefined })).toThrow(
+        new UndefinedVariableError(['foo'], 'bar'),
+      );
+    });
+
+    it('should throw error for deep nested on null parent', () => {
+      expect(() => parser.parse('foo.bar.baz.qux').eval({ foo: { bar: null } })).toThrow(
+        new UndefinedVariableError(['foo', 'bar'], 'baz'),
+      );
+    });
+
+    it('should throw error for invalid syntax', () => {
+      expect(() => parser.parse('.foo')).toThrow(new UnexpectedTokenError('.', 0));
+      expect(() => parser.parse('foo.')).toThrow(new UnexpectedTokenError('.', 3));
+    });
+
+    it('should not access built-in properties', () => {
+      expect(() => parser.parse('foo.toString').eval({ foo: 'bar' })).toThrow(
+        new ExpressionNotResolvedError('foo.toString'),
+      );
+      expect(() => parser.parse('foo.valueOf').eval({ foo: 123 })).toThrow(
+        new ExpressionNotResolvedError('foo.valueOf'),
+      );
+      expect(() => parser.parse('foo.prototype').eval({ foo: {} })).toThrow(
+        new ExpressionNotResolvedError('foo.prototype'),
+      );
+      expect(() => parser.parse('foo.constructor').eval({ foo: {} })).toThrow(
+        new ExpressionNotResolvedError('foo.constructor'),
+      );
+    });
+
+    it('should access properties if explicitly passed', () => {
+      expect(parser.parse('foo.toString').eval({ foo: { toString: 'custom' } })).toEqual('custom');
+      expect(parser.parse('foo.valueOf').eval({ foo: { valueOf: 'custom' } })).toEqual('custom');
+    });
+
+    it('should handle with nested property access', () => {
+      expect(
+        parser.parse('foo.bar && foo.baz').eval({
+          foo: {
+            bar: 'first',
+            baz: 'second',
+          },
+        }),
+      ).toEqual('second');
+
+      expect(() =>
+        parser.parse('foo.bar && foo.baz').eval({
+          foo: {
+            bar: null,
+            baz: 'second',
+          },
+        }),
+      ).toThrow(new ExpressionNotResolvedError('foo.bar && foo.baz'));
+    });
   });
 
-  it('should resolve identifier 3', () => {
-    const value = parser.parse('${{foo_bar}}').eval({ ['foo_bar']: 'foo_bar' });
-    expect(value).toEqual('foo_bar');
+  describe('String literals', () => {
+    it('should evaluate simple', () => {
+      const value = parser.parse("'hello'").eval();
+      expect(value).toEqual('hello');
+    });
+
+    it('should handle escaped single quotes', () => {
+      const value = parser.parse("'hello''world'").eval();
+      expect(value).toEqual("hello'world");
+    });
+
+    it('should throw error for unclosed', () => {
+      expect(() => parser.parse("'hello")).toThrow(new UnexpectedTokenError("'hello", 0));
+    });
+
+    it('should throw error after identifiers', () => {
+      expect(() => parser.parse("foo'bar'")).toThrow(new UnexpectedTokenError("'", 3));
+    });
   });
 
-  it('should resolve identifier 4', () => {
-    const value = parser.parse('${{foo1337}}').eval({ ['foo1337']: 'foo1337' });
-    expect(value).toEqual('foo1337');
+  describe('Value handling', () => {
+    it('should throw error for null, undefined and empty', () => {
+      expect(() => parser.parse('undefined').eval({ undefined: undefined })).toThrow(
+        new ExpressionNotResolvedError('undefined'),
+      );
+      expect(() => parser.parse('null').eval({ null: null })).toThrow(
+        new ExpressionNotResolvedError('null'),
+      );
+    });
+
+    it('should not throw for empty string', () => {
+      expect(parser.parse('empty').eval({ empty: '' })).toEqual('');
+    });
+
+    it('should preserve boolean and number values as strings', () => {
+      expect(parser.parse('zero').eval({ zero: 0 })).toEqual('0');
+      expect(parser.parse('falseVal').eval({ falseVal: false })).toEqual('false');
+      expect(parser.parse('trueVal').eval({ trueVal: true })).toEqual('true');
+      expect(parser.parse('num').eval({ num: 123 })).toEqual('123');
+    });
   });
 
-  it('should throw on invalid identifier', () => {
-    expect(() => parser.parse('${{foo-}}').eval({})).toThrow(
-      new EvaluationError("Unexpected '-' [0,6]"),
-    );
+  describe('Parsing errors', () => {
+    it('should throw error for invalid characters', () => {
+      expect(() => parser.parse('foo @ bar')).toThrow(new UnexpectedTokenError('@', 4));
+    });
+
+    it('should throw error for invalid syntax combinations', () => {
+      expect(() => parser.parse('foo..bar')).toThrow(new UnexpectedTokenError('.', 4));
+      expect(() => parser.parse('foo&&')).toThrow(new UnexpectedTokenError('&&', 3));
+      expect(() => parser.parse('||foo')).toThrow(new UnexpectedTokenError('||', 0));
+    });
   });
 
-  it('should throw on invalid identifier 2', () => {
-    expect(() => parser.parse('${{9foo}}').eval({})).toThrow(
-      new EvaluationError("Unexpected '9' [0,3]"),
-    );
+  describe('Variables', () => {
+    it('returns variables for a simple expression', () => {
+      const expr = parser.parse('a || b');
+      expect(expr.variables()).toEqual(['a', 'b']);
+    });
+
+    it('returns variables with member access', () => {
+      const expr = parser.parse('a.b || c.d');
+      expect(expr.variables()).toEqual(['a', 'c']);
+    });
+
+    it('returns variables under prefix', () => {
+      const expr = parser.parse('a.b || a.c || d');
+      expect(expr.variables(['a'])).toEqual(['b', 'c']);
+    });
+
+    it('returns empty array for non-matching prefix', () => {
+      const expr = parser.parse('a.b || c.d');
+      expect(expr.variables(['x'])).toEqual([]);
+    });
+
+    it('handles complex expressions with prefix', () => {
+      const expr = parser.parse('a.b || a || b.a');
+      expect(expr.variables(['a'])).toEqual(['b']);
+    });
+
+    it('handles nested member access with prefix', () => {
+      const expr = parser.parse('a.b.c || a.d');
+      expect(expr.variables(['a'])).toEqual(['b', 'd']);
+      expect(expr.variables(['a', 'b'])).toEqual(['c']);
+    });
   });
 
-  it('should throw on not defined identifier', () => {
-    expect(() => parser.parse('${{foo}}').eval({})).toThrow(
-      new EvaluationError('"foo" is not defined'),
-    );
+  describe('Error messages', () => {
+    it('should include full path in top-level', () => {
+      expect(() => parser.parse('foo').eval({})).toThrow('"foo" is not defined');
+    });
+
+    it('should include parent context and property', () => {
+      expect(() => parser.parse('foo.bar').eval({ foo: null })).toThrow(
+        '"foo" is not defined (reading \'bar\')',
+      );
+    });
+
+    it('should include full path and property in deep nested', () => {
+      expect(() => parser.parse('foo.bar.baz').eval({ foo: { bar: null } })).toThrow(
+        '"foo.bar" is not defined (reading \'baz\')',
+      );
+    });
+
+    it('should throw on correct possition after binary operator', () => {
+      expect(() => parser.parse('foo || "bar"')).toThrow(new UnexpectedTokenError('"', 7));
+    });
   });
 
-  it('should resolve member access', () => {
-    const value = parser.parse('${{foo.bar}}').eval({ foo: { bar: 'bar' } });
-    expect(value).toEqual('bar');
+  describe('Parentheses operator', () => {
+    it('should handle with member access and OR', () => {
+      expect(
+        parser.parse('(foo.bar) || baz').eval({
+          foo: { bar: 'value' },
+          baz: 'fallback',
+        }),
+      ).toEqual('value');
+    });
+
+    it('should handle with nested member access', () => {
+      expect(
+        parser.parse('(foo.bar).baz').eval({
+          foo: { bar: { baz: 'nested' } },
+        }),
+      ).toEqual('nested');
+    });
+
+    it('should throw error for unclosed', () => {
+      expect(() => parser.parse('(foo')).toThrow(new UnexpectedTokenError('(foo', 0));
+    });
+
+    it('should throw error for unclosed in OR', () => {
+      expect(() => parser.parse('(foo || bar')).toThrow(new UnexpectedTokenError('(foo || bar', 0));
+    });
+
+    it('should override normal operator precedence', () => {
+      expect(
+        parser.parse('(foo || bar) && baz').eval({
+          foo: '',
+          bar: 'second',
+          baz: 'third',
+        }),
+      ).toEqual('third');
+
+      expect(
+        parser.parse('(foo || bar) && baz').eval({
+          foo: '',
+          bar: '',
+          baz: 'third',
+        }),
+      ).toEqual('');
+    });
   });
 
-  it('should resolve chained member access', () => {
-    const value = parser.parse('${{foo.bar.baz}}').eval({ foo: { bar: { baz: 'baz' } } });
-    expect(value).toEqual('baz');
+  describe('Leading operators', () => {
+    it('should throw error for logical OR', () => {
+      expect(() => parser.parse('|| foo')).toThrow(new UnexpectedTokenError('||', 0));
+    });
+
+    it('should throw error for logical AND', () => {
+      expect(() => parser.parse('&& foo')).toThrow(new UnexpectedTokenError('&&', 0));
+    });
+
+    it('should throw error for member access', () => {
+      expect(() => parser.parse('.foo')).toThrow(new UnexpectedTokenError('.', 0));
+    });
   });
 
-  it('should resolve member access with spaces', () => {
-    const value = parser.parse('${{foo  .    bar}}').eval({ foo: { bar: 'bar' } });
-    expect(value).toEqual('bar');
-  });
+  describe('Logical operators', () => {
+    describe('OR operator', () => {
+      it('should return first truthy value', () => {
+        expect(
+          parser.parse('foo || bar').eval({
+            foo: 'first',
+            bar: 'second',
+          }),
+        ).toEqual('first');
+      });
 
-  it('should throw on member access with not defined child', () => {
-    expect(() => parser.parse('${{foo.bar.baz}}').eval({ foo: { bar: {} } })).toThrow(
-      new EvaluationError('"foo.bar.baz" is not defined'),
-    );
-  });
+      it('should skip falsy values', () => {
+        expect(
+          parser.parse('foo || bar || baz').eval({
+            foo: '',
+            bar: null,
+            baz: 'third',
+          }),
+        ).toEqual('third');
+      });
 
-  it('should throw on member access with not defined parent', () => {
-    expect(() => parser.parse('${{foo.bar.baz}}').eval({ foo: {} })).toThrow(
-      new EvaluationError('"foo.bar" is not defined'),
-    );
-  });
+      it('should handle multiple OR operators', () => {
+        expect(
+          parser.parse('foo || bar || baz || qux').eval({
+            foo: '',
+            bar: '',
+            baz: '',
+            qux: 'last',
+          }),
+        ).toEqual('last');
+      });
 
-  it('should throw on unexpected char', () => {
-    expect(() => parser.parse('${{foo @ bar}}')).toThrow(
-      new ParsingError(`Unexpected '@'`, [0, 7]),
-    );
-  });
+      it('should return empty string if all values are falsy', () => {
+        expect(
+          parser.parse('foo || bar').eval({
+            foo: '',
+            bar: '',
+          }),
+        ).toEqual('');
+      });
+    });
 
-  it('should throw on unexpected char 2', () => {
-    expect(() => parser.parse('${{foo.9bar}}')).toThrow(new ParsingError(`Unexpected '9'`, [0, 7]));
-  });
+    describe('AND operator', () => {
+      it('should return last value if all truthy', () => {
+        expect(
+          parser.parse('foo && bar').eval({
+            foo: 'first',
+            bar: 'second',
+          }),
+        ).toEqual('second');
+      });
 
-  it('should throw on unexpected char', () => {
-    expect(() => parser.parse('${{.foo}}')).toThrow(new ParsingError(`Unexpected '.'`, [0, 3]));
-  });
+      it('should return first falsy value', () => {
+        expect(
+          parser.parse('foo && bar && baz').eval({
+            foo: 'first',
+            bar: '',
+            baz: 'third',
+          }),
+        ).toEqual('');
+      });
 
-  it('should throw on unexpected EOF', () => {
-    expect(() => parser.parse('${{foo.}}')).toThrow(new ParsingError(`Unexpected EOF`, [0, 7]));
-  });
+      it('should handle multiple AND operators', () => {
+        expect(
+          parser.parse('foo && bar && baz && qux').eval({
+            foo: 'first',
+            bar: 'second',
+            baz: 'third',
+            qux: 'last',
+          }),
+        ).toEqual('last');
+      });
 
-  it('should throw on empty expression', () => {
-    expect(() => parser.parse('${{    }}')).toThrow(new ParsingError(`Unexpected EOF`, [0, 7]));
-  });
+      it('should handle null values', () => {
+        expect(() =>
+          parser.parse('foo && bar').eval({
+            foo: 'first',
+            bar: null,
+          }),
+        ).toThrow(new ExpressionNotResolvedError('foo && bar'));
+      });
+    });
 
-  it('should resolve wrapped expression', () => {
-    const value = parser.parse('hello ${{foo}} world').eval({ foo: 'foo' });
-    expect(value).toEqual('hello foo world');
-  });
+    describe('Mixed operators', () => {
+      it('should handle AND and OR together', () => {
+        expect(
+          parser.parse('foo && bar || baz').eval({
+            foo: 'first',
+            bar: 'second',
+            baz: 'third',
+          }),
+        ).toEqual('second');
+      });
 
-  it('should resolve double expression', () => {
-    const value = parser.parse('${{foo}} ${{bar}}').eval({ foo: 'foo', bar: 'bar' });
-    expect(value).toEqual('foo bar');
-  });
+      it('should respect operator precedence (AND before OR)', () => {
+        expect(
+          parser.parse('foo || bar && baz').eval({
+            foo: '',
+            bar: 'second',
+            baz: 'third',
+          }),
+        ).toEqual('third');
+      });
 
-  it('should resolve variables', () => {
-    const variables = parser.parse('${{foo.bar}}').variables();
-    expect(variables).toEqual(['foo']);
-  });
-
-  it('should resolve variables with path', () => {
-    const variables = parser.parse('${{foo.bar}}').variables(['foo']);
-    expect(variables).toEqual(['bar']);
+      it('should handle complex expressions', () => {
+        expect(
+          parser.parse('foo.prop || bar && baz.value').eval({
+            foo: { prop: '' },
+            bar: 'second',
+            baz: { value: 'third' },
+          }),
+        ).toEqual('third');
+      });
+    });
   });
 });

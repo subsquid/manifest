@@ -1,4 +1,5 @@
 import { Manifest, ManifestEvaluatingError } from '../src';
+import { UnexpectedTokenError } from '../src/expression';
 
 describe('Env Evaluation', () => {
   describe('eval', () => {
@@ -101,7 +102,7 @@ describe('Env Evaluation', () => {
         }),
       ).toThrow(
         new ManifestEvaluatingError([
-          'Manifest env variable "deploy.env.foo" can not be mapped for "${{foo.}}" expression: Unexpected EOF [0,7]',
+          `Manifest env variable "deploy.env.foo" can not be mapped to "\${{foo.}}": Unexpected token '.' [6]`,
         ]),
       );
     });
@@ -130,7 +131,7 @@ describe('Env Evaluation', () => {
         }),
       ).toThrow(
         new ManifestEvaluatingError([
-          'Manifest env variable "deploy.processor.[0].env.foo" can not be mapped for "${{foo.}}" expression: Unexpected EOF [0,7]',
+          `Manifest env variable "deploy.processor.[0].env.foo" can not be mapped to "\${{foo.}}": ${new UnexpectedTokenError('.', 6).message}`,
         ]),
       );
     });
@@ -158,7 +159,35 @@ describe('Env Evaluation', () => {
         }),
       ).toThrow(
         new ManifestEvaluatingError([
-          'Manifest env variable "deploy.env.baz" can not be mapped for "${{baz}}" expression: "baz" is not defined',
+          'Manifest env variable "deploy.env.baz" can not be mapped to "${{baz}}": "baz" is not defined',
+        ]),
+      );
+    });
+
+    it('should return evaluation error if expression is resolved to null', () => {
+      const manifest = new Manifest({
+        manifest_version: 'subsquid.io/v0.1',
+        name: 'test',
+        version: 1,
+        deploy: {
+          env: {
+            foo: '${{foo.bar}}',
+            bar: 'bar',
+          },
+          processor: {
+            name: 'processor',
+          },
+        },
+      });
+
+      expect(() =>
+        manifest.eval({
+          foo: {},
+        }),
+      ).toThrow(
+        new ManifestEvaluatingError([
+          `Manifest env variable "deploy.env.foo" can not be mapped to "\${{foo.bar}}": "foo.bar" was not resolved to any value. ` +
+            `Please ensure that all required variables are defined or the expression provides a valid fallback`,
         ]),
       );
     });
