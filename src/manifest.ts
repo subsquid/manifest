@@ -2,7 +2,7 @@ import yaml from 'js-yaml';
 import { cloneDeep, defaultsDeep, get, mapValues, set } from 'lodash';
 
 import { ManifestEvaluatingError, ManifestParsingError } from './errors';
-import { Expression, Parser } from './expression';
+import { Expression, ExpressionNotResolvedError, Parser } from './expression';
 import { manifestSchema } from './schema';
 import { DeepPartial, ManifestDeploymentConfig, ManifestProcessor, ManifestValue } from './types';
 
@@ -328,9 +328,14 @@ function getError(path: string, expression: string | undefined, error: unknown) 
   const exprIn = expression ? ` to "${expression}"` : '';
 
   return [
-    `Manifest env variable "${path}" can not be mapped${exprIn}`,
-    error instanceof Error ? error.message : String(error),
-  ].join(': ');
+    `Manifest env variable "${path}" can not be mapped${exprIn}: ` +
+      (error instanceof Error ? error.message : String(error)),
+    error instanceof ExpressionNotResolvedError
+      ? '. Please ensure that all required variables are defined or the expression provides a valid fallback'
+      : '',
+  ]
+    .filter(Boolean)
+    .join('');
 }
 
 function parseString(str: string): (string | Expression)[] {

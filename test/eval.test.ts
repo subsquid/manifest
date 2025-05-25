@@ -186,7 +186,8 @@ describe('Env Evaluation', () => {
         }),
       ).toThrow(
         new ManifestEvaluatingError([
-          'Manifest env variable "deploy.env.foo" can not be mapped to "${{foo.bar}}": "foo.bar" was not resolved to any value',
+          `Manifest env variable "deploy.env.foo" can not be mapped to "\${{foo.bar}}": "foo.bar" was not resolved to any value. ` +
+            `Please ensure that all required variables are defined or the expression provides a valid fallback`,
         ]),
       );
     });
