@@ -331,6 +331,16 @@ describe('Expression Parser', () => {
         ).toEqual('third');
       });
 
+      it('should skip falsy values with parenthesized expression', () => {
+        expect(
+          parser.parse('(foo || bar) || baz').eval({
+            foo: '',
+            bar: null,
+            baz: 'third',
+          }),
+        ).toEqual('third');
+      });
+
       it('should handle multiple OR operators', () => {
         expect(
           parser.parse('foo || bar || baz || qux').eval({
@@ -381,6 +391,16 @@ describe('Expression Parser', () => {
             qux: 'last',
           }),
         ).toEqual('last');
+      });
+
+      it('should handle multiple AND operators with parenthesized expression', () => {
+        expect(
+          parser.parse('(foo && bar) && baz').eval({
+            foo: 'first',
+            bar: 'second',
+            baz: 'third',
+          }),
+        ).toEqual('third');
       });
 
       it('should handle null values', () => {

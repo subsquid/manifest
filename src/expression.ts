@@ -110,7 +110,7 @@ namespace Operator {
     constructor(readonly value: [Token, Token]) {}
 
     add(right: Token) {
-      this.value[1] = new Operator.And([this.value[1], right]);
+      this.value[1] = new Operator.Or([this.value[1], right]);
     }
 
     eval(ctx: any, path: string[]) {
