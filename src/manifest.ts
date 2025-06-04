@@ -23,6 +23,12 @@ const parser = new Parser();
 
 const DEFAULT_MIGRATION = ['npx', 'squid-typeorm-migration', 'apply'];
 
+export interface ManifestContext extends Record<string, any> {
+  squid: Record<string, any>;
+  secrets: Record<string, any>;
+  addons: Record<string, any>;
+}
+
 export class Manifest {
   constructor(value: ManifestValue) {
     defaultsDeep(this, value);
@@ -95,10 +101,16 @@ export class Manifest {
     ];
   }
 
-  eval(context: Record<string, unknown>): Manifest {
+  eval(context: Partial<ManifestContext>): Manifest {
     const raw = this.toObject();
     const paths = this.getAllEnvPaths();
     const errors: string[] = [];
+
+    context = defaultsDeep(context, {
+      squid: {},
+      secrets: {},
+      addons: {},
+    } satisfies ManifestContext);
 
     for (const path of paths) {
       const envObject = get(raw, path);

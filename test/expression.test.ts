@@ -32,18 +32,6 @@ describe('Expression Parser', () => {
       expect(() => parser.parse('foo').eval({})).toThrow(new UndefinedVariableError(['foo']));
     });
 
-    it('should throw error for undefined nested with null parent', () => {
-      expect(() => parser.parse('foo.bar').eval({ foo: null })).toThrow(
-        new UndefinedVariableError(['foo'], 'bar'),
-      );
-    });
-
-    it('should throw error for undefined nested with undefined parent', () => {
-      expect(() => parser.parse('foo.bar').eval({ foo: undefined })).toThrow(
-        new UndefinedVariableError(['foo'], 'bar'),
-      );
-    });
-
     it('should evaluate with hyphens, underscores and numbers', () => {
       expect(parser.parse('foo-bar').eval({ ['foo-bar']: 'value' })).toEqual('value');
       expect(parser.parse('foo_bar').eval({ ['foo_bar']: 'value' })).toEqual('value');
@@ -73,27 +61,6 @@ describe('Expression Parser', () => {
     it('should handle whitespace around dot', () => {
       const value = parser.parse('foo  .    bar').eval({ foo: { bar: 'bar' } });
       expect(value).toEqual('bar');
-    });
-
-    it('should throw error for undefined nested with null parent', () => {
-      expect(() => parser.parse('foo.bar.baz').eval({ foo: { bar: null } })).toThrow(
-        new UndefinedVariableError(['foo', 'bar'], 'baz'),
-      );
-    });
-
-    it('should throw error for null or undefined parent', () => {
-      expect(() => parser.parse('foo.bar').eval({ foo: null })).toThrow(
-        new UndefinedVariableError(['foo'], 'bar'),
-      );
-      expect(() => parser.parse('foo.bar').eval({ foo: undefined })).toThrow(
-        new UndefinedVariableError(['foo'], 'bar'),
-      );
-    });
-
-    it('should throw error for deep nested on null parent', () => {
-      expect(() => parser.parse('foo.bar.baz.qux').eval({ foo: { bar: null } })).toThrow(
-        new UndefinedVariableError(['foo', 'bar'], 'baz'),
-      );
     });
 
     it('should throw error for invalid syntax', () => {
@@ -232,18 +199,6 @@ describe('Expression Parser', () => {
   describe('Error messages', () => {
     it('should include full path in top-level', () => {
       expect(() => parser.parse('foo').eval({})).toThrow('"foo" is not defined');
-    });
-
-    it('should include parent context and property', () => {
-      expect(() => parser.parse('foo.bar').eval({ foo: null })).toThrow(
-        '"foo" is not defined (reading \'bar\')',
-      );
-    });
-
-    it('should include full path and property in deep nested', () => {
-      expect(() => parser.parse('foo.bar.baz').eval({ foo: { bar: null } })).toThrow(
-        '"foo.bar" is not defined (reading \'baz\')',
-      );
     });
 
     it('should throw on correct possition after binary operator', () => {

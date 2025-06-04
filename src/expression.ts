@@ -154,6 +154,7 @@ namespace Operator {
     eval(ctx: any, path: string[]) {
       const [left, right] = this.value;
       const leftValue = left.eval(ctx, path);
+      if (isNull(leftValue.value)) return leftValue;
       return right.eval(leftValue.value, leftValue.path);
     }
 
