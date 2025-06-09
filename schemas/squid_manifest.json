@@ -348,6 +348,7 @@
                                     "opbnb.http",
                                     "opbnb-testnet.http",
                                     "optimism.http",
+                                    "optimism-sepolia.http",
                                     "optimism-goerli.http",
                                     "pendulum.http",
                                     "phala.http",
@@ -737,7 +738,9 @@
                             "enum": [
                                 "small",
                                 "medium",
-                                "large"
+                                "large",
+                                "xlarge",
+                                "2xlarge"
                             ]
                         }
                     },
@@ -756,7 +759,9 @@
                             "enum": [
                                 "small",
                                 "medium",
-                                "large"
+                                "large",
+                                "xlarge",
+                                "2xlarge"
                             ]
                         }
                     },
