@@ -108,6 +108,7 @@
   { "name": "opbnb-testnet", "type": "evm" },
 
   { "name": "optimism", "type": "evm" },
+  { "name": "optimism-sepolia", "type": "evm" },
   { "name": "optimism-goerli", "type": "evm" },
 
   { "name": "pendulum", "type": "substrate" },

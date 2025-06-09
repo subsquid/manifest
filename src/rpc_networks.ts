@@ -70,6 +70,7 @@ export type NetworkName =
   | 'opbnb'
   | 'opbnb-testnet'
   | 'optimism'
+  | 'optimism-sepolia'
   | 'optimism-goerli'
   | 'pendulum'
   | 'phala'
@@ -164,6 +165,7 @@ export type RpcEndpointName =
   | 'opbnb.http'
   | 'opbnb-testnet.http'
   | 'optimism.http'
+  | 'optimism-sepolia.http'
   | 'optimism-goerli.http'
   | 'pendulum.http'
   | 'phala.http'
@@ -316,6 +318,7 @@ export const NETWORKS: {
   { network: 'opbnb', endpoints: [{ name: 'opbnb.http', type: 'evm' }] },
   { network: 'opbnb-testnet', endpoints: [{ name: 'opbnb-testnet.http', type: 'evm' }] },
   { network: 'optimism', endpoints: [{ name: 'optimism.http', type: 'evm' }] },
+  { network: 'optimism-sepolia', endpoints: [{ name: 'optimism-sepolia.http', type: 'evm' }] },
   { network: 'optimism-goerli', endpoints: [{ name: 'optimism-goerli.http', type: 'evm' }] },
   { network: 'pendulum', endpoints: [{ name: 'pendulum.http', type: 'substrate' }] },
   { network: 'phala', endpoints: [{ name: 'phala.http', type: 'substrate' }] },
@@ -432,6 +435,7 @@ export const RPC_ENDPOINT_NAMES: RpcEndpointName[] = [
   'opbnb.http',
   'opbnb-testnet.http',
   'optimism.http',
+  'optimism-sepolia.http',
   'optimism-goerli.http',
   'pendulum.http',
   'phala.http',
