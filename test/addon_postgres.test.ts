@@ -573,4 +573,65 @@ describe('Addon Postgres', () => {
 
     expect(error).toBeUndefined();
   });
+
+  it('should allow max_connections in postgres config', () => {
+    const { error, value } = Manifest.parse(`
+    manifest_version: subsquid.io/v0.1
+    name: test
+    version: 1
+    build:
+    deploy:
+      addons:
+        postgres:
+          config:
+            max_connections: 50
+      api:
+        cmd: [ "npx", "squid-graphql-server" ]
+      processor:
+        cmd: [ "node", "lib/processor" ]
+    `);
+
+    expect(error).toBeUndefined();
+    expect(value?.deploy?.addons?.postgres?.config?.max_connections).toBe(50);
+  });
+
+  it('should reject max_connections greater than 100', () => {
+    const { error } = Manifest.parse(`
+    manifest_version: subsquid.io/v0.1
+    name: test
+    version: 1
+    build:
+    deploy:
+      addons:
+        postgres:
+          config:
+            max_connections: 101
+      api:
+        cmd: [ "npx", "squid-graphql-server" ]
+      processor:
+        cmd: [ "node", "lib/processor" ]
+    `);
+
+    expect(error).toBeDefined();
+  });
+
+  it('should reject max_connections less than 1', () => {
+    const { error } = Manifest.parse(`
+    manifest_version: subsquid.io/v0.1
+    name: test
+    version: 1
+    build:
+    deploy:
+      addons:
+        postgres:
+          config:
+            max_connections: 0
+      api:
+        cmd: [ "npx", "squid-graphql-server" ]
+      processor:
+        cmd: [ "node", "lib/processor" ]
+    `);
+
+    expect(error).toBeDefined();
+  });
 });

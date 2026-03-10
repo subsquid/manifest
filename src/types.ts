@@ -39,6 +39,7 @@ export type ManifestDeploymentConfig = {
         max_pred_locks_per_transaction: number;
         idle_in_transaction_session_timeout: number | string;
         idle_session_timeout: number | string;
+        max_connections: number;
       };
     };
     neon?: {
