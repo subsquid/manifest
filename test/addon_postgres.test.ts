@@ -42,10 +42,7 @@ describe('Addon Postgres', () => {
         addons: {
           postgres: {
             version: '14',
-            config: {
-              idle_in_transaction_session_timeout: '5min',
-              idle_session_timeout: '30min',
-            },
+            config: {},
           },
         },
       },
@@ -113,10 +110,7 @@ describe('Addon Postgres', () => {
         addons: {
           postgres: {
             version: '14',
-            config: {
-              idle_in_transaction_session_timeout: '5min',
-              idle_session_timeout: '30min',
-            },
+            config: {},
           },
         },
       },
