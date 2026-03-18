@@ -276,7 +276,10 @@ export class Manifest {
         deploy: {
           addons: {
             postgres: {
-              config: {},
+              config: {
+                idle_in_transaction_session_timeout: '5min',
+                idle_session_timeout: '30min',
+              },
             },
           },
           init: {

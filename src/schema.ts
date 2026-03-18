@@ -115,6 +115,8 @@ export const manifestSchema = Joi.object<ManifestValue>({
           log_min_duration_statement: Joi.number().integer().positive(),
           max_locks_per_transaction: Joi.number().integer().positive(),
           max_pred_locks_per_transaction: Joi.number().integer().positive(),
+          idle_in_transaction_session_timeout: Joi.string(),
+          idle_session_timeout: Joi.string(),
         }),
       }).allow(null),
 

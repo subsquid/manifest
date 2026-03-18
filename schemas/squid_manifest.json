@@ -225,6 +225,12 @@
                                         "max_pred_locks_per_transaction": {
                                             "type": "integer",
                                             "exclusiveMinimum": 0
+                                        },
+                                        "idle_in_transaction_session_timeout": {
+                                            "type": "string"
+                                        },
+                                        "idle_session_timeout": {
+                                            "type": "string"
                                         }
                                     },
                                     "additionalProperties": false
