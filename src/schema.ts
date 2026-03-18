@@ -127,6 +127,8 @@ export const manifestSchema = Joi.object<ManifestValue>({
           max_pred_locks_per_transaction: Joi.number().integer().positive(),
           idle_in_transaction_session_timeout: pgDurationSchema,
           idle_session_timeout: pgDurationSchema,
+        }),
+        external: Joi.object({
           max_connections: Joi.number().integer().min(1).max(100).default(20),
         }),
       }).allow(null),
