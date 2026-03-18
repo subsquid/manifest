@@ -40,6 +40,9 @@ export type ManifestDeploymentConfig = {
         idle_in_transaction_session_timeout: number | string;
         idle_session_timeout: number | string;
       };
+      external_access?: {
+        max_connections: number;
+      };
     };
     neon?: {
       version: string;
