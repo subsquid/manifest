@@ -129,7 +129,7 @@ export const manifestSchema = Joi.object<ManifestValue>({
           idle_session_timeout: pgDurationSchema,
         }),
         external_access: Joi.object({
-          max_connections: Joi.number().integer().min(0).max(100).default(20),
+          max_connections: Joi.number().integer().min(0).max(100),
         }),
       }).allow(null),
 
