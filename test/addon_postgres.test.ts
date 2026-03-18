@@ -297,6 +297,261 @@ describe('Addon Postgres', () => {
     );
   });
 
+  it.each(['us', 'ms', 's', 'min', 'h', 'd'])(
+    'should allow idle_in_transaction_session_timeout with %s unit',
+    unit => {
+      const { error, value } = Manifest.parse(`
+      manifest_version: subsquid.io/v0.1
+      name: test
+      version: 1
+      build:
+      deploy:
+        addons:
+          postgres:
+            config:
+              idle_in_transaction_session_timeout: 60${unit}
+        api:
+          cmd: [ "npx", "squid-graphql-server" ]
+        processor:
+          cmd: [ "node", "lib/processor" ]
+      `);
+
+      expect(error).toBeUndefined();
+      expect(value?.deploy?.addons?.postgres?.config?.idle_in_transaction_session_timeout).toEqual(
+        `60${unit}`,
+      );
+    },
+  );
+
+  it.each(['us', 'ms', 's', 'min', 'h', 'd'])(
+    'should allow idle_session_timeout with %s unit',
+    unit => {
+      const { error, value } = Manifest.parse(`
+      manifest_version: subsquid.io/v0.1
+      name: test
+      version: 1
+      build:
+      deploy:
+        addons:
+          postgres:
+            config:
+              idle_session_timeout: 300${unit}
+        api:
+          cmd: [ "npx", "squid-graphql-server" ]
+        processor:
+          cmd: [ "node", "lib/processor" ]
+      `);
+
+      expect(error).toBeUndefined();
+      expect(value?.deploy?.addons?.postgres?.config?.idle_session_timeout).toEqual(`300${unit}`);
+    },
+  );
+
+  it('should allow idle_in_transaction_session_timeout without unit', () => {
+    const { error, value } = Manifest.parse(`
+    manifest_version: subsquid.io/v0.1
+    name: test
+    version: 1
+    build:
+    deploy:
+      addons:
+        postgres:
+          config:
+            idle_in_transaction_session_timeout: 60000
+      api:
+        cmd: [ "npx", "squid-graphql-server" ]
+      processor:
+        cmd: [ "node", "lib/processor" ]
+    `);
+
+    expect(error).toBeUndefined();
+    expect(value?.deploy?.addons?.postgres?.config?.idle_in_transaction_session_timeout).toEqual(
+      60000,
+    );
+  });
+
+  it('should allow idle_session_timeout without unit', () => {
+    const { error, value } = Manifest.parse(`
+    manifest_version: subsquid.io/v0.1
+    name: test
+    version: 1
+    build:
+    deploy:
+      addons:
+        postgres:
+          config:
+            idle_session_timeout: 300000
+      api:
+        cmd: [ "npx", "squid-graphql-server" ]
+      processor:
+        cmd: [ "node", "lib/processor" ]
+    `);
+
+    expect(error).toBeUndefined();
+    expect(value?.deploy?.addons?.postgres?.config?.idle_session_timeout).toEqual(300000);
+  });
+
+  it('should not allow idle_session_timeout with invalid unit', () => {
+    const { error } = Manifest.parse(`
+    manifest_version: subsquid.io/v0.1
+    name: test
+    version: 1
+    build:
+    deploy:
+      addons:
+        postgres:
+          config:
+            idle_session_timeout: 300x
+      api:
+        cmd: [ "npx", "squid-graphql-server" ]
+      processor:
+        cmd: [ "node", "lib/processor" ]
+    `);
+
+    expect(error).toEqual(
+      new ManifestParsingError([
+        '"deploy.addons.postgres.config.idle_session_timeout" with value "300x" is invalid. Must be a number optionally followed by a unit. Valid units are "us", "ms", "s", "min", "h" and "d"',
+      ]),
+    );
+  });
+
+  it('should allow both timeout settings together', () => {
+    const { error, value } = Manifest.parse(`
+    manifest_version: subsquid.io/v0.1
+    name: test
+    version: 1
+    build:
+    deploy:
+      addons:
+        postgres:
+          config:
+            idle_in_transaction_session_timeout: 60s
+            idle_session_timeout: 5min
+      api:
+        cmd: [ "npx", "squid-graphql-server" ]
+      processor:
+        cmd: [ "node", "lib/processor" ]
+    `);
+
+    expect(error).toBeUndefined();
+    expect(value?.deploy?.addons?.postgres?.config?.idle_in_transaction_session_timeout).toEqual(
+      '60s',
+    );
+    expect(value?.deploy?.addons?.postgres?.config?.idle_session_timeout).toEqual('5min');
+  });
+
+  it('should allow statement_timeout as a number (backward compatible)', () => {
+    const { error, value } = Manifest.parse(`
+    manifest_version: subsquid.io/v0.1
+    name: test
+    version: 1
+    build:
+    deploy:
+      addons:
+        postgres:
+          config:
+            statement_timeout: 60000
+      api:
+        cmd: [ "npx", "squid-graphql-server" ]
+      processor:
+        cmd: [ "node", "lib/processor" ]
+    `);
+
+    expect(error).toBeUndefined();
+    expect(value?.deploy?.addons?.postgres?.config?.statement_timeout).toEqual(60000);
+  });
+
+  it('should allow log_min_duration_statement as a number (backward compatible)', () => {
+    const { error, value } = Manifest.parse(`
+    manifest_version: subsquid.io/v0.1
+    name: test
+    version: 1
+    build:
+    deploy:
+      addons:
+        postgres:
+          config:
+            log_min_duration_statement: 5000
+      api:
+        cmd: [ "npx", "squid-graphql-server" ]
+      processor:
+        cmd: [ "node", "lib/processor" ]
+    `);
+
+    expect(error).toBeUndefined();
+    expect(value?.deploy?.addons?.postgres?.config?.log_min_duration_statement).toEqual(5000);
+  });
+
+  it('should allow statement_timeout with a unit', () => {
+    const { error, value } = Manifest.parse(`
+    manifest_version: subsquid.io/v0.1
+    name: test
+    version: 1
+    build:
+    deploy:
+      addons:
+        postgres:
+          config:
+            statement_timeout: 60s
+      api:
+        cmd: [ "npx", "squid-graphql-server" ]
+      processor:
+        cmd: [ "node", "lib/processor" ]
+    `);
+
+    expect(error).toBeUndefined();
+    expect(value?.deploy?.addons?.postgres?.config?.statement_timeout).toEqual('60s');
+  });
+
+  it('should allow log_min_duration_statement with a unit', () => {
+    const { error, value } = Manifest.parse(`
+    manifest_version: subsquid.io/v0.1
+    name: test
+    version: 1
+    build:
+    deploy:
+      addons:
+        postgres:
+          config:
+            log_min_duration_statement: 5min
+      api:
+        cmd: [ "npx", "squid-graphql-server" ]
+      processor:
+        cmd: [ "node", "lib/processor" ]
+    `);
+
+    expect(error).toBeUndefined();
+    expect(value?.deploy?.addons?.postgres?.config?.log_min_duration_statement).toEqual('5min');
+  });
+
+  it('should allow all postgres config options together', () => {
+    const { error, value } = Manifest.parse(`
+    manifest_version: subsquid.io/v0.1
+    name: test
+    version: 1
+    build:
+    deploy:
+      addons:
+        postgres:
+          config:
+            statement_timeout: 60s
+            log_min_duration_statement: 5min
+            idle_in_transaction_session_timeout: 120s
+            idle_session_timeout: 10min
+      api:
+        cmd: [ "npx", "squid-graphql-server" ]
+      processor:
+        cmd: [ "node", "lib/processor" ]
+    `);
+
+    expect(error).toBeUndefined();
+    const config = value?.deploy?.addons?.postgres?.config;
+    expect(config?.statement_timeout).toEqual('60s');
+    expect(config?.log_min_duration_statement).toEqual('5min');
+    expect(config?.idle_in_transaction_session_timeout).toEqual('120s');
+    expect(config?.idle_session_timeout).toEqual('10min');
+  });
+
   it.each(['G', 'Gi', 'T', 'Ti'])(`should allow %v unit`, unit => {
     const { error } = Manifest.parse(`
     manifest_version: subsquid.io/v0.1

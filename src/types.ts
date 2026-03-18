@@ -33,10 +33,12 @@ export type ManifestDeploymentConfig = {
     postgres?: {
       version: string;
       config?: {
-        statement_timeout: number;
-        log_min_duration_statement: number;
+        statement_timeout: number | string;
+        log_min_duration_statement: number | string;
         max_locks_per_transaction: number;
         max_pred_locks_per_transaction: number;
+        idle_in_transaction_session_timeout: number | string;
+        idle_session_timeout: number | string;
       };
     };
     neon?: {

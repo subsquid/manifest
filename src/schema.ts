@@ -18,6 +18,16 @@ export const AVAILABLE_MANIFEST_VERSIONS = ['subsquid.io/v0.1'];
 
 const NEON_VALID_CU = ['0.25', '0.5', '1', '2', '3', '4', '8'];
 
+const pgDurationSchema = Joi.alternatives().try(
+  Joi.number().integer().positive(),
+  Joi.string()
+    .regex(/^\d+(us|ms|s|min|h|d)$/)
+    .messages({
+      'string.pattern.base':
+        '{#label} with value "{#value}" is invalid. Must be a number optionally followed by a unit. Valid units are "us", "ms", "s", "min", "h" and "d"',
+    }),
+);
+
 export const JoiSquidName = Joi.string().min(3).max(30).pattern(SQUID_NAME_PATTERN).messages({
   'any.required': 'The squid name is required',
   'string.min': 'The squid name must contain at least {#limit} symbol(s)',
@@ -111,10 +121,12 @@ export const manifestSchema = Joi.object<ManifestValue>({
       postgres: Joi.object({
         version: Joi.string().valid('14').default('14'),
         config: Joi.object({
-          statement_timeout: Joi.number().integer().positive(),
-          log_min_duration_statement: Joi.number().integer().positive(),
+          statement_timeout: pgDurationSchema,
+          log_min_duration_statement: pgDurationSchema,
           max_locks_per_transaction: Joi.number().integer().positive(),
           max_pred_locks_per_transaction: Joi.number().integer().positive(),
+          idle_in_transaction_session_timeout: pgDurationSchema,
+          idle_session_timeout: pgDurationSchema,
         }),
       }).allow(null),
 
