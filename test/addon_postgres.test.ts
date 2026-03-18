@@ -574,7 +574,7 @@ describe('Addon Postgres', () => {
     expect(error).toBeUndefined();
   });
 
-  it('should allow max_connections in postgres config', () => {
+  it('should allow max_connections in postgres external_access', () => {
     const { error, value } = Manifest.parse(`
     manifest_version: subsquid.io/v0.1
     name: test
@@ -583,7 +583,7 @@ describe('Addon Postgres', () => {
     deploy:
       addons:
         postgres:
-          config:
+          external_access:
             max_connections: 50
       api:
         cmd: [ "npx", "squid-graphql-server" ]
@@ -592,7 +592,7 @@ describe('Addon Postgres', () => {
     `);
 
     expect(error).toBeUndefined();
-    expect(value?.deploy?.addons?.postgres?.config?.max_connections).toBe(50);
+    expect(value?.deploy?.addons?.postgres?.external_access?.max_connections).toBe(50);
   });
 
   it('should reject max_connections greater than 100', () => {
@@ -604,7 +604,7 @@ describe('Addon Postgres', () => {
     deploy:
       addons:
         postgres:
-          config:
+          external_access:
             max_connections: 101
       api:
         cmd: [ "npx", "squid-graphql-server" ]
@@ -615,7 +615,7 @@ describe('Addon Postgres', () => {
     expect(error).toBeDefined();
   });
 
-  it('should reject max_connections less than 1', () => {
+  it('should reject max_connections less than 0', () => {
     const { error } = Manifest.parse(`
     manifest_version: subsquid.io/v0.1
     name: test
@@ -624,8 +624,8 @@ describe('Addon Postgres', () => {
     deploy:
       addons:
         postgres:
-          config:
-            max_connections: 0
+          external_access:
+            max_connections: -1
       api:
         cmd: [ "npx", "squid-graphql-server" ]
       processor:
