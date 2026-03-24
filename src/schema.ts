@@ -119,7 +119,7 @@ export const manifestSchema = Joi.object<ManifestValue>({
 
     addons: Joi.object({
       postgres: Joi.object({
-        version: Joi.string().valid('14').default('14'),
+        version: Joi.string().valid('14', '15', '16', '17', '18').default('18'),
         config: Joi.object({
           statement_timeout: pgDurationSchema,
           log_min_duration_statement: pgDurationSchema,
