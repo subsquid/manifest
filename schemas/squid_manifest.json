@@ -204,8 +204,15 @@
                             ],
                             "properties": {
                                 "version": {
-                                    "default": "14",
-                                    "const": "14"
+                                    "type": "string",
+                                    "default": "18",
+                                    "enum": [
+                                        "14",
+                                        "15",
+                                        "16",
+                                        "17",
+                                        "18"
+                                    ]
                                 },
                                 "config": {
                                     "type": "object",

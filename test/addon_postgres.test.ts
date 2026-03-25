@@ -41,7 +41,7 @@ describe('Addon Postgres', () => {
         ],
         addons: {
           postgres: {
-            version: '14',
+            version: '18',
             config: {},
           },
         },
@@ -109,7 +109,7 @@ describe('Addon Postgres', () => {
         ],
         addons: {
           postgres: {
-            version: '14',
+            version: '18',
             config: {},
           },
         },
@@ -550,6 +550,45 @@ describe('Addon Postgres', () => {
     expect(config?.log_min_duration_statement).toEqual('5min');
     expect(config?.idle_in_transaction_session_timeout).toEqual('120s');
     expect(config?.idle_session_timeout).toEqual('10min');
+  });
+
+  it.each(['14', '15', '16', '17', '18'])('should allow postgres version %s', version => {
+    const { error, value } = Manifest.parse(`
+    manifest_version: subsquid.io/v0.1
+    name: test
+    version: 1
+    build:
+    deploy:
+      addons:
+        postgres:
+          version: "${version}"
+      api:
+        cmd: [ "npx", "squid-graphql-server" ]
+      processor:
+        cmd: [ "node", "lib/processor" ]
+    `);
+
+    expect(error).toBeUndefined();
+    expect(value?.deploy?.addons?.postgres?.version).toBe(version);
+  });
+
+  it('should reject invalid postgres version', () => {
+    const { error } = Manifest.parse(`
+    manifest_version: subsquid.io/v0.1
+    name: test
+    version: 1
+    build:
+    deploy:
+      addons:
+        postgres:
+          version: "13"
+      api:
+        cmd: [ "npx", "squid-graphql-server" ]
+      processor:
+        cmd: [ "node", "lib/processor" ]
+    `);
+
+    expect(error).toBeDefined();
   });
 
   it.each(['G', 'Gi', 'T', 'Ti'])(`should allow %v unit`, unit => {
