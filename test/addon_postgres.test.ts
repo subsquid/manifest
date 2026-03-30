@@ -41,7 +41,6 @@ describe('Addon Postgres', () => {
         ],
         addons: {
           postgres: {
-            version: '18',
             config: {},
           },
         },
@@ -109,7 +108,6 @@ describe('Addon Postgres', () => {
         ],
         addons: {
           postgres: {
-            version: '18',
             config: {},
           },
         },

@@ -31,7 +31,7 @@ export type ManifestDeploymentConfig = {
   env?: Record<string, string>;
   addons?: {
     postgres?: {
-      version: string;
+      version?: string;
       config?: {
         statement_timeout: number | string;
         log_min_duration_statement: number | string;
